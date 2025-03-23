@@ -1,0 +1,21 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${version}"
+displayName = "{mod_name}"
+displayURL = "https://www.curseforge.com/minecraft/mc-mods/ftb-mod-name"
+#logoFile = "logo.png"
+authors = "FTB Team"
+description = '''
+Description
+'''
+
+[[dependencies.ftbbackups3]]
+modId = "neoforge"
+mandatory = true
+versionRange = "${mod_loader_range}"
+ordering = "NONE"
+side="BOTH"
