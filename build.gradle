@@ -80,10 +80,17 @@ configurations {
 }
 
 repositories {
-	maven { 
+	maven {
 		url = "https://maven.ftb.dev/releases"
-		content = {
+		content {
 			includeGroup("dev.ftb.mods")
+		}
+	}
+
+	maven {
+		url = "https://maven.architectury.dev"
+		content {
+			includeGroup("dev.architectury")
 		}
 	}
 }

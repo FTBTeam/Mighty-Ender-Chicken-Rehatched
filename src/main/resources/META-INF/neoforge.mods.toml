@@ -5,7 +5,7 @@ license = "All Rights Reserved"
 [[mods]]
 modId = "${mod_id}"
 version = "${version}"
-displayName = "{mod_name}"
+displayName = "${mod_name}"
 displayURL = "https://www.curseforge.com/minecraft/mc-mods/ftb-mod-name"
 #logoFile = "logo.png"
 authors = "FTB Team"
