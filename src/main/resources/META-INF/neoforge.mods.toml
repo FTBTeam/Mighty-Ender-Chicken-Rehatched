@@ -13,7 +13,7 @@ description = '''
 Description
 '''
 
-[[dependencies.ftbbackups3]]
+[[dependencies.${mod_id}]]
 modId = "neoforge"
 mandatory = true
 versionRange = "${mod_loader_range}"
