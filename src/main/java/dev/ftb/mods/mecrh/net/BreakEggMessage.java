@@ -2,7 +2,7 @@ package dev.ftb.mods.mecrh.net;
 
 import dev.ftb.mods.mecrh.MECRHMod;
 import dev.ftb.mods.mecrh.client.MECRHModClient;
-import dev.ftb.mods.mecrh.entity.EnderChickenEntity;
+import dev.ftb.mods.mecrh.entity.EnderChicken;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -22,7 +22,7 @@ public record BreakEggMessage(int entityId) implements CustomPacketPayload {
     }
 
     public static void handle(BreakEggMessage message, IPayloadContext context) {
-        if (context.player().level().getEntity(message.entityId) instanceof EnderChickenEntity chicken) {
+        if (context.player().level().getEntity(message.entityId) instanceof EnderChicken chicken) {
             MECRHModClient.playEggBreakEffects(chicken);
         }
     }

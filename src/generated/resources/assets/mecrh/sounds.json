@@ -1,0 +1,63 @@
+{
+  "charge_start": {
+    "sounds": [
+      "mecrh:charge_start"
+    ],
+    "subtitle": "mecrh.subtitle.charge_start"
+  },
+  "chicken_of_chaos": {
+    "sounds": [
+      {
+        "name": "mecrh:chicken_of_chaos",
+        "stream": true
+      }
+    ]
+  },
+  "clear_warn": {
+    "sounds": [
+      "mecrh:clear_warn_1",
+      "mecrh:clear_warn_2",
+      "mecrh:clear_warn_3"
+    ],
+    "subtitle": "mecrh.subtitle.clear_warn"
+  },
+  "ender_death": {
+    "sounds": [
+      "mecrh:chicken_spin"
+    ],
+    "subtitle": "mecrh.subtitle.chicken_spin"
+  },
+  "ff_off": {
+    "sounds": [
+      "mecrh:forcefield_off"
+    ],
+    "subtitle": "mecrh.subtitle.forcefield_off"
+  },
+  "ff_on": {
+    "sounds": [
+      "mecrh:forcefield_on"
+    ],
+    "subtitle": "mecrh.subtitle.forcefield_on"
+  },
+  "laser_end": {
+    "sounds": [
+      "mecrh:laser_end"
+    ],
+    "subtitle": "mecrh.subtitle.laser_end"
+  },
+  "laser_loop": {
+    "sounds": [
+      {
+        "name": "mecrh:laser_loop",
+        "stream": true
+      }
+    ],
+    "subtitle": "mecrh.subtitle.laser_loop"
+  },
+  "laser_start": {
+    "sounds": [
+      "mecrh:laser_start"
+    ],
+    "subtitle": "mecrh.subtitle.laser_start"
+  }
+}

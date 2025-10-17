@@ -1,41 +1,75 @@
 package dev.ftb.mods.mecrh.entity;
 
-import net.minecraft.nbt.CompoundTag;
+import dev.ftb.mods.mecrh.config.ServerConfig;
+import dev.ftb.mods.mecrh.registry.ModEntityTypes;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.world.entity.Entity;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
-public class EggBomb extends Entity {
-    private float scale;
-    private LivingEntity target;
-    private boolean huntTarget;
-    private boolean chaosChicken;
+public class EggBomb extends ThrowableProjectile {
+    public int explodeTimer;
 
     public EggBomb(EntityType<EggBomb> entityEntityType, Level level) {
         super(entityEntityType, level);
     }
 
-    public void setup(float scale, LivingEntity target, boolean huntTarget, boolean chaosChicken) {
-        this.scale = scale;
-        this.target = target;
-        this.huntTarget = huntTarget;
-        this.chaosChicken = chaosChicken;
+    public EggBomb(Level level, LivingEntity shooter) {
+        super(ModEntityTypes.EGG_BOMB.get(), shooter, level);
     }
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
-
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag compound) {
+    public void tick() {
+        super.tick();
 
+        if (!level().isClientSide()) {
+            if (explodeTimer > 0 && --explodeTimer == 0) {
+                explode();
+            }
+
+            if (tickCount > 80) {
+                explode();
+            }
+
+            if (getRandom().nextFloat() < 0.4f && getOwner() instanceof EnderChicken chicken && chicken.getTarget() != null) {
+                Vec3 offset = chicken.getTarget().position().subtract(position());
+                setDeltaMovement(getDeltaMovement().add(offset.normalize().scale(0.1).add(0, 0.1, 0)));
+            }
+        }
     }
 
     @Override
-    protected void addAdditionalSaveData(CompoundTag compound) {
+    public boolean hurt(DamageSource source, float amount) {
+        explodeTimer = 10;
+        return true;
+    }
 
+    @Override
+    protected void onHit(HitResult result) {
+        if (result instanceof EntityHitResult ehr && (ehr.getEntity() instanceof EnderChicken || ehr.getEntity() instanceof EnderChickenPart)) {
+            return;
+        }
+        if (tickCount > 5 && !level().isClientSide && isAlive()) {
+            explode();
+        }
+    }
+
+    private void explode() {
+        discard();
+
+        float radius = ServerConfig.EGG_BOMB_EXPLOSION_POWER.get().floatValue();
+        Level.ExplosionInteraction interaction = ServerConfig.EGG_BOMB_DAMAGE_TERRAIN.get() ?
+                Level.ExplosionInteraction.MOB :
+                Level.ExplosionInteraction.NONE;
+        level().explode(getOwner(), getX(), getY(), getZ(), radius, false, interaction);
     }
 }

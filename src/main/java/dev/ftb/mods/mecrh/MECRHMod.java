@@ -1,13 +1,26 @@
 package dev.ftb.mods.mecrh;
 
+import dev.ftb.mods.ftblibrary.config.manager.ConfigManager;
+import dev.ftb.mods.mecrh.config.ServerConfig;
+import dev.ftb.mods.mecrh.datagen.DataGenerators;
+import dev.ftb.mods.mecrh.entity.EnderChicken;
 import dev.ftb.mods.mecrh.net.MightyChickenNet;
+import dev.ftb.mods.mecrh.registry.ModAttachments;
+import dev.ftb.mods.mecrh.registry.ModEntityTypes;
+import dev.ftb.mods.mecrh.registry.ModItems;
 import dev.ftb.mods.mecrh.registry.ModSounds;
 import net.minecraft.resources.ResourceLocation;
 
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.SpawnEggItem;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,10 +30,40 @@ public class MECRHMod {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MECRHMod.class);
 
-    public MECRHMod(IEventBus eventBus, ModContainer container) {
-        eventBus.addListener(MightyChickenNet::register);
+    public MECRHMod(IEventBus modEventBus, ModContainer container) {
+        modEventBus.addListener(MightyChickenNet::register);
+        modEventBus.addListener(DataGenerators::gatherData);
+        modEventBus.addListener(this::registerEntityAttributes);
+        modEventBus.addListener(this::addSpawnEggsToCreativeTab);
 
-        ModSounds.SOUNDS.register(eventBus);
+        ModEntityTypes.ENTITY_TYPES.register(modEventBus);
+        ModItems.ITEMS.register(modEventBus);
+        ModSounds.SOUNDS.register(modEventBus);
+        ModAttachments.ATTACHMENT_TYPES.register(modEventBus);
+
+        NeoForge.EVENT_BUS.addListener(this::onEntityDamage);
+
+        ConfigManager.getInstance().registerServerConfig(ServerConfig.CONFIG, MOD_ID + ".server_config", false, ServerConfig::onConfigChanged);
+    }
+
+    private void registerEntityAttributes(EntityAttributeCreationEvent event) {
+        event.put(ModEntityTypes.ENDER_CHICKEN.get(), EnderChicken.createAttributes().build());
+    }
+
+    private void addSpawnEggsToCreativeTab(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
+            ModItems.ITEMS.getEntries().forEach(entry -> {
+                if (entry.get() instanceof SpawnEggItem egg) {
+                    event.accept(egg);
+                }
+            });
+        }
+    }
+
+    private void onEntityDamage(LivingIncomingDamageEvent event) {
+        if (event.getSource().is(ChickenDamageTypes.LASER)) {
+            event.setInvulnerabilityTicks(ServerConfig.LASER_INVULN_TICKS.get());
+        }
     }
 
     public static ResourceLocation id(String path) {

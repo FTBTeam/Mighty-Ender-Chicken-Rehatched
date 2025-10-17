@@ -19,7 +19,8 @@ public class ModSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> FF_ON = register("ff_on");
     public static final DeferredHolder<SoundEvent, SoundEvent> FF_OFF = register("ff_off");
     public static final DeferredHolder<SoundEvent, SoundEvent> CHAOS_MUSIC_INTRO = register("chaos_music_intro");
-    public static final DeferredHolder<SoundEvent, SoundEvent> CHAOS_MUSIC = register("chaos_music");
+    public static final DeferredHolder<SoundEvent, SoundEvent> CHAOS_MUSIC_OLD = register("chaos_music");
+    public static final DeferredHolder<SoundEvent, SoundEvent> CHAOS_MUSIC = register("chicken_of_chaos");
     public static final DeferredHolder<SoundEvent, SoundEvent> CHAOS_INTRO_1 = register("chaos_intro_1");
     public static final DeferredHolder<SoundEvent, SoundEvent> CHAOS_INTRO_2 = register("chaos_intro_2");
     public static final DeferredHolder<SoundEvent, SoundEvent> CHAOS_INTRO_3 = register("chaos_intro_3");
@@ -30,7 +31,7 @@ public class ModSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> CHAOS_CLEAR = register("chaos_clear");
     public static final DeferredHolder<SoundEvent, SoundEvent> CLEAR_WARN = register("clear_warn");
     public static final DeferredHolder<SoundEvent, SoundEvent> CHAOS_SPINNY = register("chaos_spinny");
-    public static final DeferredHolder<SoundEvent, SoundEvent> ENDER_DEATH = register("ender_death");
+    public static final DeferredHolder<SoundEvent, SoundEvent> CHICKEN_SPIN = register("ender_death");
 
     private static DeferredHolder<SoundEvent,SoundEvent> register(String name) {
         return SOUNDS.register(name, () -> SoundEvent.createVariableRangeEvent(MECRHMod.id(name)));

@@ -1,26 +1,22 @@
 package dev.ftb.mods.mecrh.entity.ai;
 
-import dev.ftb.mods.mecrh.config.ServerConfig;
-import dev.ftb.mods.mecrh.entity.EnderChickenEntity;
+import dev.ftb.mods.mecrh.entity.EnderChicken;
 import dev.ftb.mods.mecrh.registry.ModSounds;
 
 import java.util.EnumSet;
 
-public class ClearAreaGoal extends ChickenSkillGoal {
+public class ClearAreaGoal extends ChickenGoal {
     private int clearingAreaTime;
 
-    public ClearAreaGoal(EnderChickenEntity chicken) {
-        super(chicken, ServerConfig.CLEAR_AREA_CHANCE.get());
+    public ClearAreaGoal(EnderChicken chicken) {
+        super(chicken);
 
         setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
     }
 
     @Override
     public boolean canUse() {
-        return chicken.canUseAbility()
-                && (chicken.getEggState() >= 0 || chicken.getTarget() != null)
-                && chicken.getRandom().nextFloat() < chanceToUse
-                && chicken.shouldClearArea();
+        return chicken.canUseAbility() && chicken.shouldClearArea();
     }
 
     @Override
@@ -43,7 +39,7 @@ public class ClearAreaGoal extends ChickenSkillGoal {
 
     @Override
     public void tick() {
-        if (!chicken.isFiring()) {
+        if (!chicken.isFiringLaser()) {
             chicken.setXRot(20F);
         }
         ++clearingAreaTime;

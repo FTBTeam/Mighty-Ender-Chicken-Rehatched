@@ -100,10 +100,19 @@ repositories {
 			includeGroup("dev.architectury")
 		}
 	}
+
+	maven {
+		name = "GeckoLib"
+		url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/"
+		content {
+			includeGroup("software.bernie.geckolib")
+		}
+	}
 }
 
 dependencies {
 	implementation "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}"
+	implementation "software.bernie.geckolib:geckolib-neoforge-${minecraft_version}:${geckolib_version}"
 }
 
 tasks.register("sourcesJar", Jar) {
@@ -128,13 +137,13 @@ tasks.named("jar") {
 
 tasks.withType(ProcessResources).configureEach {
 	var replaceProperties = [
-		version: version,
-		mod_id: mod_id,
-		mod_name: mod_name,
-		pack_format: pack_format,
-		loader_version_range: loader_version_range,
-		// 99.9% of the time we're only going to target a very vague version of neoforge so this is fine.
-		mod_loader_range: mod_loader_range.replace("\${mc_base}", mcMinorAndPatch), // Replace the version in the mod loader range
+			version: version,
+			mod_id: mod_id,
+			mod_name: mod_name,
+			pack_format: pack_format,
+			loader_version_range: loader_version_range,
+			// 99.9% of the time we're only going to target a very vague version of neoforge so this is fine.
+			mod_loader_range: mod_loader_range.replace("\${mc_base}", mcMinorAndPatch), // Replace the version in the mod loader range
 	]
 
 	inputs.properties replaceProperties
@@ -192,7 +201,7 @@ publishing {
 	publications {
 		register('mavenJava', MavenPublication) {
 			version = ftbPublishing.mavenVersion
-            artifactId = archives_base_name
+			artifactId = archives_base_name
 			from components.java
 			artifact sourcesJar
 			// Uncomment this if you want to create an API jar

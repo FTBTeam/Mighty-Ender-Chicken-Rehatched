@@ -2,7 +2,7 @@ package dev.ftb.mods.mecrh.registry;
 
 import dev.ftb.mods.mecrh.MECRHMod;
 import dev.ftb.mods.mecrh.entity.EggBomb;
-import dev.ftb.mods.mecrh.entity.EnderChickenEntity;
+import dev.ftb.mods.mecrh.entity.EnderChicken;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -15,7 +15,7 @@ public class ModEntityTypes {
     public static final DeferredRegister<EntityType<?>> ENTITY_TYPES
             = DeferredRegister.create(Registries.ENTITY_TYPE, MECRHMod.MOD_ID);
 
-    public static final Supplier<EntityType<EnderChickenEntity>> ENDER_CHICKEN
+    public static final Supplier<EntityType<EnderChicken>> ENDER_CHICKEN
             = register("ender_chicken", ModEntityTypes::enderChicken);
     public static final Supplier<EntityType<EggBomb>> EGG_BOMB
             = register("egg_bomb", ModEntityTypes::eggBomb);
@@ -24,9 +24,9 @@ public class ModEntityTypes {
         return ENTITY_TYPES.register(name, () -> sup.get().build(name));
     }
 
-    private static EntityType.Builder<EnderChickenEntity> enderChicken() {
-        return EntityType.Builder.of(EnderChickenEntity::new, MobCategory.MONSTER)
-                .sized(8F, 8F)
+    private static EntityType.Builder<EnderChicken> enderChicken() {
+        return EntityType.Builder.of(EnderChicken::new, MobCategory.MONSTER)
+                .sized(1.7F, 8F)
                 .eyeHeight(7F)
                 .clientTrackingRange(10);
     }

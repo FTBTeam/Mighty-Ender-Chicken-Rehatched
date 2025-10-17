@@ -1,28 +1,23 @@
 package dev.ftb.mods.mecrh.entity.ai;
 
 import dev.ftb.mods.mecrh.config.ServerConfig;
-import dev.ftb.mods.mecrh.entity.EggBomb;
-import dev.ftb.mods.mecrh.entity.EnderChickenEntity;
-import dev.ftb.mods.mecrh.registry.ModEntityTypes;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.util.Mth;
+import dev.ftb.mods.mecrh.entity.EnderChicken;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.phys.Vec3;
 
-public class ChickenStrafingGoal extends ChickenSkillGoal {
+public class ChickenStrafingGoal extends ChickenGoal {
     private int strafingRunTime;
     private int eggCooldown;
 
-    public ChickenStrafingGoal(EnderChickenEntity chicken) {
-        super(chicken, ServerConfig.STRAFE_CHANCE.get());
+    public ChickenStrafingGoal(EnderChicken chicken) {
+        super(chicken);
     }
 
     @Override
     public boolean canUse() {
-        if (chicken.getEggState() < 0 && chicken.getMaxStrafingRunTime() <= 0) {
+        if (chicken.canUseAbility() && chicken.getMaxStrafingRunTime() <= 0) {
             LivingEntity target = chicken.getTarget();
             if (target != null && target.isAlive()) {
-                return chicken.canUseAbility() && chicken.getRandom().nextFloat() < chanceToUse;
+                return chicken.canUseAbility();
             } else {
                 return false;
             }

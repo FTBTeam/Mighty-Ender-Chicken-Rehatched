@@ -10,21 +10,26 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.entity.PartEntity;
 
 import javax.annotation.Nullable;
 
-public class EnderChickenPart extends PartEntity<EnderChickenEntity> {
+public class EnderChickenPart extends PartEntity<EnderChicken> {
     private final EntityDimensions size;
-    private final String name;
+    private final PartType type;
 
-    public EnderChickenPart(EnderChickenEntity parent, String name, float width, float height) {
+    public EnderChickenPart(EnderChicken parent, PartType type, float width, float height) {
         super(parent);
-        this.name = name;
+        this.type = type;
 
         size = EntityDimensions.scalable(width, height);
         noPhysics = true;
         refreshDimensions();
+    }
+
+    public PartType getPartType() {
+        return type;
     }
 
     @Override
@@ -42,6 +47,7 @@ public class EnderChickenPart extends PartEntity<EnderChickenEntity> {
     @Override
     public boolean isPickable() {
         return true;
+//        return type != PartType.FORCEFIELD || !getParent().isForceField();
     }
 
     @Nullable
@@ -52,7 +58,7 @@ public class EnderChickenPart extends PartEntity<EnderChickenEntity> {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        return !this.isInvulnerableTo(source) && getParent().hurt(source, amount);
+        return !this.isInvulnerableTo(source) && getParent().attackFromPart(source, this, amount);
     }
 
     @Override
@@ -73,5 +79,22 @@ public class EnderChickenPart extends PartEntity<EnderChickenEntity> {
     @Override
     public boolean shouldBeSaved() {
         return false;
+    }
+
+    public enum PartType {
+        FOOT_L,
+        FOOT_R,
+        LEG_L,
+        LEG_R,
+        BODY,
+        WING_L,
+        WING_R,
+        HEAD,
+        BILL,
+//        FORCEFIELD
+    }
+
+    public AABB getBlockDestructionAABB() {
+        return getBoundingBox().expandTowards(getParent().getDeltaMovement()).inflate(getBbWidth() / 3.0);
     }
 }
