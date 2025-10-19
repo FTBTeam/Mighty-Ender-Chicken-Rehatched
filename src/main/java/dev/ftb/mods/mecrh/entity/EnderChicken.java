@@ -368,12 +368,13 @@ public class EnderChicken extends Monster implements GeoEntity {
     private void applyLaserBlockDamage(BlockHitResult bhr) {
         BlockPos pos = bhr.getBlockPos();
         BlockState state = level().getBlockState(pos);
-        if (!state.isAir() && state.getDestroySpeed(level(), pos) > 0) {
+
+        if (!state.isAir() && state.getDestroySpeed(level(), pos) > 0 && !state.is(MECRHTags.Blocks.CHICKEN_UNBREAKABLE)) {
             level().destroyBlock(pos, false);
             for (Direction dir : Direction.values()) {
                 BlockPos pos2 = pos.relative(dir);
                 if (random.nextFloat() < 0.5f) {
-                    if (!state.isAir() && state.getDestroySpeed(level(), pos2) > 0) {
+                    if (!state.isAir() && state.getDestroySpeed(level(), pos2) > 0 && !state.is(MECRHTags.Blocks.CHICKEN_UNBREAKABLE)) {
                         level().destroyBlock(pos, false);
                     }
                 }

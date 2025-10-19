@@ -9,6 +9,7 @@ import dev.ftb.mods.mecrh.registry.ModAttachments;
 import dev.ftb.mods.mecrh.registry.ModEntityTypes;
 import dev.ftb.mods.mecrh.registry.ModItems;
 import dev.ftb.mods.mecrh.registry.ModSounds;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 
 import net.minecraft.world.item.CreativeModeTabs;
@@ -21,8 +22,11 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 @Mod(MECRHMod.MOD_ID)
 public class MECRHMod {
@@ -42,6 +46,7 @@ public class MECRHMod {
         ModAttachments.ATTACHMENT_TYPES.register(modEventBus);
 
         NeoForge.EVENT_BUS.addListener(this::onEntityDamage);
+        NeoForge.EVENT_BUS.addListener(this::handleExplosion);
 
         ConfigManager.getInstance().registerServerConfig(ServerConfig.CONFIG, MOD_ID + ".server_config", false, ServerConfig::onConfigChanged);
     }
@@ -63,6 +68,13 @@ public class MECRHMod {
     private void onEntityDamage(LivingIncomingDamageEvent event) {
         if (event.getSource().is(ChickenDamageTypes.LASER)) {
             event.setInvulnerabilityTicks(ServerConfig.LASER_INVULN_TICKS.get());
+        }
+    }
+
+    private void handleExplosion(ExplosionEvent.Detonate event) {
+        if (event.getExplosion().getDirectSourceEntity() instanceof EnderChicken) {
+            List<BlockPos> affectedBlocks = event.getAffectedBlocks();
+            affectedBlocks.removeIf(pos -> event.getLevel().getBlockState(pos).is(MECRHTags.Blocks.CHICKEN_UNBREAKABLE));
         }
     }
 
