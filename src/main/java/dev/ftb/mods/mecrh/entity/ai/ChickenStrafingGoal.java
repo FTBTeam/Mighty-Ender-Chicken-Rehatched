@@ -53,7 +53,7 @@ public class ChickenStrafingGoal extends ChickenGoal {
         --eggCooldown;
 
         if (strafingRunTime < chicken.getMaxStrafingRunTime() && eggCooldown <= 0 && chicken.getRandom().nextFloat() < ServerConfig.STRAFE_EGG_CHANCE.get()) {
-            chicken.launchEggBomb(0.09f);
+            chicken.launchEggBomb(0.09f, chicken.getRandom().nextBoolean());
             eggCooldown = 5;
         }
     }

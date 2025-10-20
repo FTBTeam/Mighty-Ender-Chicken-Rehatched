@@ -71,7 +71,7 @@ public class EnderChickenRenderer extends DynamicGeoEntityRenderer<EnderChicken>
         @Override
         public void render(PoseStack poseStack, EnderChicken animatable, BakedGeoModel bakedModel, @Nullable RenderType renderType, MultiBufferSource bufferSource, @Nullable VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {
             int progress = animatable.getFiringProgress();
-            if (animatable.isFiringLaser() && progress > ChickenLaserGoal.WARMUP_TIME && progress < ChickenLaserGoal.LASER_DURATION) {
+            if (animatable.isAlive() && animatable.isFiringLaser() && progress > ChickenLaserGoal.WARMUP_TIME && progress < ChickenLaserGoal.LASER_DURATION) {
                 poseStack.pushPose();
 
                 Vec3 origin = animatable.partBill.position().subtract(animatable.position())

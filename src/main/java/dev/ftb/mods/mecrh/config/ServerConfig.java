@@ -1,12 +1,9 @@
 package dev.ftb.mods.mecrh.config;
 
 import dev.ftb.mods.ftblibrary.snbt.config.*;
-import dev.ftb.mods.mecrh.ChickenSkill;
 import dev.ftb.mods.mecrh.MECRHMod;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-
-import java.util.ArrayList;
 
 public interface ServerConfig {
     String KEY = MECRHMod.MOD_ID + "-server";
@@ -61,10 +58,15 @@ public interface ServerConfig {
     IntValue LASER_INVULN_TICKS = LASER_CONFIG.addInt("invulnerability_ticks", 10, 1, Integer.MAX_VALUE);
     IntValue LASER_FIRE_TICKS = LASER_CONFIG.addInt("fire_ticks", 60, 0, Integer.MAX_VALUE);
 
-    SNBTConfig SKILL_CONFIG = CONFIG.addGroup("skills");
+    SNBTConfig PECK_OF_DOOM_CONFIG = CONFIG.addGroup("peck_of_doom");
+    IntValue PECK_MIN_INTERVAL = PECK_OF_DOOM_CONFIG.addInt("min_interval", 600, 20, Integer.MAX_VALUE);
+    IntValue PECK_MAX_INTERVAL = PECK_OF_DOOM_CONFIG.addInt("max_interval", 600, 20, Integer.MAX_VALUE);
+    DoubleValue DIST_ABOVE_TARGET = PECK_OF_DOOM_CONFIG.addDouble("distance_above_target", 10.0, 1.0, Double.MAX_VALUE);
+    IntValue MAX_PECK_CHARGE_TIME = PECK_OF_DOOM_CONFIG.addInt("max_charge_time", 100, 20, Integer.MAX_VALUE);
+    IntValue PECK_DROP_TIME = PECK_OF_DOOM_CONFIG.addInt("drop_time", 20, 5, Integer.MAX_VALUE);
+    IntValue PECK_WARMUP_TIME = PECK_OF_DOOM_CONFIG.addInt("warmup_time", 12, 1, 600);
 
-    StringListValue ENDER_SKILL_SET = CONFIG.addStringList("skill_set", new ArrayList<>(ChickenSkill.skillNames()));
-    StringListValue CHAOS_SKILL_SET = CONFIG.addStringList("skill_set", new ArrayList<>(ChickenSkill.skillNames()));
+    SNBTConfig SKILL_CONFIG = CONFIG.addGroup("skills");
 
     DoubleValue CLEAR_AREA_CHANCE = SKILL_CONFIG.addDouble("clear_area_chance", 0.05, 0.0, 1.0);
     DoubleValue FLAP_CHANCE = SKILL_CONFIG.addDouble("flap_chance", 0.3, 0.0, 1.0);
@@ -103,6 +105,10 @@ public interface ServerConfig {
 
     static int getLaserInterval(RandomSource random) {
         return getInterval(LASER_MIN_TIME.get(), LASER_MAX_TIME.get(), random);
+    }
+
+    static int getPeckInterval(RandomSource random) {
+        return getInterval(PECK_MIN_INTERVAL.get(), PECK_MAX_INTERVAL.get(), random);
     }
 
     private static int getInterval(int m1, int m2, RandomSource random) {

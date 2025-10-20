@@ -9,6 +9,7 @@ import dev.ftb.mods.mecrh.entity.EnderChickenPart.PartType;
 import dev.ftb.mods.mecrh.entity.ai.*;
 import dev.ftb.mods.mecrh.registry.ModAttachments;
 import dev.ftb.mods.mecrh.registry.ModSounds;
+import dev.ftb.mods.mecrh.util.ChickenUtils;
 import dev.ftb.mods.mecrh.util.PreviousLaserDamage;
 import dev.ftb.mods.mecrh.util.Raytracing;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
@@ -47,6 +48,8 @@ import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.Zombie;
@@ -57,6 +60,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.CampfireBlock;
+import net.minecraft.world.level.block.LevelEvent;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.*;
@@ -85,16 +89,16 @@ public class EnderChicken extends Monster implements GeoEntity {
     public static final EntityDataAccessor<Boolean> ENRAGED = SynchedEntityData.defineId(EnderChicken.class, EntityDataSerializers.BOOLEAN);
 
     public static final RawAnimation LASER_ANIMATION = RawAnimation.begin().thenPlay("attack.laser");
-//    public static final RawAnimation SPIN_ANIMATION = RawAnimation.begin().thenPlay("misc.spin");
+    //    public static final RawAnimation SPIN_ANIMATION = RawAnimation.begin().thenPlay("misc.spin");
     public static final RawAnimation ENRAGED_ANIMATION = RawAnimation.begin().thenPlay("misc.enraged");
     public static final RawAnimation PECK_ANIMATION = RawAnimation.begin().thenPlay("attack.peck");
 
     public static final Predicate<? super Entity> PREDICATE_TARGETS
             = EntitySelector.NO_CREATIVE_OR_SPECTATOR.and(EntitySelector.LIVING_ENTITY_STILL_ALIVE);//.and(e -> e.canBeCollidedWith() && e.tickCount > 60);
 
-    public static final int SPAWNING_INTRO_TIME = 40; // ticks
+    public static final int SPAWNING_INTRO_TIME = 80; // ticks
 
-    private static final ResourceLocation CHICKEN_SCALE_MOD = MECRHMod.id("chicken_scale");
+    public static final ResourceLocation CHICKEN_SCALE_MOD = MECRHMod.id("chicken_scale");
     private static final ResourceLocation RIDER_SCALE_MOD = MECRHMod.id("zombie_rider_scale");
     private static final double ZOMBIE_RIDER_SCALE = 3.0;
 
@@ -102,20 +106,21 @@ public class EnderChicken extends Monster implements GeoEntity {
     private boolean clearAreaNeeded;
     private int firingProgress;
     private int maxStrafingRunTime;
-    private LivingEntity forceFieldAttacker;
     private boolean inIntroPhase;
-    private int forcefieldLevel; // positive -> number of hits needed, negative -> time till activation
+    private int forcefieldLevel; // positive -> number of hits needed to break it, negative -> time till activation
     private final Object2LongMap<UUID> forceFieldInformed = new Object2LongOpenHashMap<>();
-    private UUID zombieRiderId = null; // when restoring from NBT
+    private UUID zombieRiderId = null; // used when restoring from NBT
     private Zombie zombieRider;
     private int spinTime;
     private int nextSpinTime;
     private int nextChargeTime;
+    private int nextPeckTime;
     private int nextStampedeTime;
     private int nextLaserTime;
-//    private BlockPos spawnPos;
     private double laserLength;
     private int projectileImmuneTicks;
+    private int ticksToLeap = 30;
+    private boolean hasCluckstormed;
 
     private final ServerBossEvent bossEvent = new ServerBossEvent(
             Component.translatable("entity.mecrh.ender_chicken"),
@@ -170,6 +175,11 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     @Override
+    protected PathNavigation createNavigation(Level level) {
+        return new FlyingPathNavigation(this, level);
+    }
+
+    @Override
     public void setId(int id) {
         super.setId(id);
 
@@ -196,15 +206,17 @@ public class EnderChicken extends Monster implements GeoEntity {
 
     @Override
     protected void registerGoals() {
-        goalSelector.addGoal(4, new LookAtTargetGoal(this));
-        goalSelector.addGoal(5, new RandomStrollGoal(this, 1.0));
-        goalSelector.addGoal(7, new RandomLookAroundGoal(this));
-
-        goalSelector.addGoal(2, new ChickenSpinGoal(this));
-        goalSelector.addGoal(2, new ChickenChargeGoal(this));
         goalSelector.addGoal(2, new ChickenStampedeGoal(this));
-        goalSelector.addGoal(2, new ChickenLaserGoal(this));
-        goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.5, true));
+        goalSelector.addGoal(2, new ChickenCluckstormGoal(this));
+        goalSelector.addGoal(3, new ChickenSpinGoal(this));
+        goalSelector.addGoal(3, new ChickenChargeGoal(this, false));
+        goalSelector.addGoal(3, new ChickenChargeGoal(this, true));
+        goalSelector.addGoal(3, new ChickenLaserGoal(this));
+        goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.5, true));
+
+        goalSelector.addGoal(5, new LookAtTargetGoal(this));
+        goalSelector.addGoal(6, new RandomStrollGoal(this, 1.0));
+        goalSelector.addGoal(7, new RandomLookAroundGoal(this));
 
         targetSelector.addGoal(1, new HurtByTargetGoal(this));
         if (ServerConfig.TARGET_ALL_LIVING.get()) {
@@ -272,15 +284,15 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void checkDespawn() {
+        // do nothing, don't despawn naturally
     }
 
     @Override
     public void aiStep() {
         super.aiStep();
 
-        if (tickCount == 1 && level().isClientSide) {
+        if (tickCount == SPAWNING_INTRO_TIME + 1 && level().isClientSide) {
             MECRHModClient.startMusicLoop(this);
         }
         if (isSpinning()) {
@@ -386,38 +398,49 @@ public class EnderChicken extends Monster implements GeoEntity {
 
     @Override
     protected void customServerAiStep() {
-        bossEvent.setProgress(this.getHealth() / this.getMaxHealth());
-
 //        if (!hasRestriction()) {
 //            restrictTo(blockPosition(), ServerConfig.ARENA_RADIUS.get());
 //        }
 
-        if (tickCount < 40 && isInIntroPhase()) {
-            setSizeModifier((40 - tickCount) / -40.0);
-            if (tickCount % 5 == 0) {
-                playSound(SoundEvents.CHICKEN_AMBIENT, 1f, 0.8f + tickCount / 80f);
+        if (isInIntroPhase() && tickCount < SPAWNING_INTRO_TIME) {
+            int halfIntroTime = SPAWNING_INTRO_TIME / 2;
+            if (tickCount <= halfIntroTime) {
+                setSizeModifier(-0.975);
+                if (tickCount % 20 == 5) {
+                    playSound(SoundEvents.CHICKEN_AMBIENT);
+                }
+                bossEvent.setProgress(0f);
+            } else {
+                setSizeModifier((SPAWNING_INTRO_TIME - tickCount) / (double) -halfIntroTime);
+                if (tickCount % 7 == 0) {
+                    playSound(SoundEvents.CHICKEN_AMBIENT, 1f, 0.6f + tickCount / 80f);
+                }
+                bossEvent.setProgress((tickCount - halfIntroTime) / (float) halfIntroTime);
             }
+        } else {
+            bossEvent.setProgress(getHealth() / getMaxHealth());
         }
 
         if (tickCount == 1) {
             if (zombieRiderId != null && ((ServerLevel) level()).getEntity(zombieRiderId) instanceof Zombie z && z.isBaby()) {
+                // restoring from NBT
                 zombieRider = z;
             }
-        } else if (tickCount == 20) {
-            setSizeModifier(1.0);
+        } else if (tickCount == SPAWNING_INTRO_TIME - 20) {
             if (zombieRider == null) {
                 spawnZombieRider();
             }
-        } else if (inIntroPhase) {
+        } else if (isInIntroPhase()) {
             if (tickCount == SPAWNING_INTRO_TIME) {
                 nextSpinTime = tickCount + ServerConfig.getSpinInterval(getRandom());
                 nextChargeTime = tickCount + ServerConfig.getChargeInterval(getRandom());
+                nextPeckTime = tickCount + ServerConfig.getPeckInterval(getRandom());
                 nextLaserTime = tickCount + ServerConfig.getLaserInterval(getRandom());
                 nextStampedeTime = 0; // will trigger as soon as chicken is below 70% health
                 playSound(SoundEvents.BELL_BLOCK, 2f, 0.6f);
                 setForceField(true);
                 inIntroPhase = false;
-            } else if (tickCount == SPAWNING_INTRO_TIME + 4) {
+            } else if (tickCount == SPAWNING_INTRO_TIME + 10) {
                 playSound(SoundEvents.CHICKEN_HURT, 2f, 0.7f);
             }
         }
@@ -449,6 +472,16 @@ public class EnderChicken extends Monster implements GeoEntity {
                         (random.nextDouble() - 0.5) * 2.0, -this.random.nextDouble(), (this.random.nextDouble() - 0.5) * 2.0,
                         0.1);
                 playSound(SoundEvents.ENDERMAN_TELEPORT);
+            }
+        }
+
+        if (getTarget() != null && getTarget().isAlive() && getNavigation().getPath() == null && onGround()) {
+            ticksToLeap = 30;
+        }
+        if (--ticksToLeap >= 0) {
+            if (ticksToLeap % 10 == 0) {
+//                setDeltaMovement(getDeltaMovement().add(0, 0.4, 0));
+                playSound(SoundEvents.PHANTOM_FLAP);
             }
         }
     }
@@ -486,8 +519,21 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     @Override
+    public void onRemovedFromLevel() {
+        if (zombieRider != null) {
+            zombieRider.discard();
+            zombieRider = null;
+        }
+    }
+
+    @Override
     public @Nullable LivingEntity getControllingPassenger() {
         return null;  // zombie rider never controls the chicken
+    }
+
+    @Override
+    public void remove(RemovalReason reason) {
+        super.remove(reason);
     }
 
     @Override
@@ -495,16 +541,15 @@ public class EnderChicken extends Monster implements GeoEntity {
         deathTime++;
 
         if (deathTime == 1) {
-            playSound(SoundEvents.ENDER_DRAGON_DEATH, 1.2f, 1f);
+            playSound(SoundEvents.ENDER_DRAGON_DEATH, 2f, 1f);
         } else if (deathTime == 10) {
             BlockPos pos = Objects.requireNonNullElse(getRestrictCenter(), blockPosition());
             AABB aabb = new AABB(pos).inflate(ServerConfig.ARENA_RADIUS.get() * 2);
             level().getNearbyEntities(LivingEntity.class, TargetingConditions.forNonCombat(), this, aabb).forEach(entity -> {
-                if (ChickenStampedeGoal.hasChickenBoss(entity, this)) {
+                if (ChickenUtils.hasChickenBoss(entity, this)) {
                     entity.kill();
                 }
             });
-
         }
 
         if (deathTime >= 10 && zombieRider != null) {
@@ -543,6 +588,7 @@ public class EnderChicken extends Monster implements GeoEntity {
         if (projectileImmuneTicks > 0) compound.putInt("ProjectileImmuneTicks", projectileImmuneTicks);
         if (hasRestriction()) compound.put("RestrictPos", NbtUtils.writeBlockPos(getRestrictCenter()));
         if (isEnraged()) compound.putBoolean("Enraged", true);
+        if (hasCluckstormed) compound.putBoolean("HasCluckstormed", true);
     }
 
     @Override
@@ -557,6 +603,7 @@ public class EnderChicken extends Monster implements GeoEntity {
         nextLaserTime = compound.getInt("NextLaserTime");
         inIntroPhase = compound.getBoolean("IntroPhase");
         projectileImmuneTicks = compound.getInt("ProjectileImmuneTicks");
+        hasCluckstormed = compound.getBoolean("HasCluckstormed");
         NbtUtils.readBlockPos(compound, "RestrictPos")
                 .ifPresent(pos -> restrictTo(pos, ServerConfig.ARENA_RADIUS.get()));
         if (compound.getBoolean("Enraged")) {
@@ -605,6 +652,11 @@ public class EnderChicken extends Monster implements GeoEntity {
             }
             return super.hurt(source, amount);
         }
+    }
+
+    @Override
+    public float maxUpStep() {
+        return 2F;
     }
 
     public boolean attackFromPart(DamageSource source, EnderChickenPart part, float amount) {
@@ -715,10 +767,14 @@ public class EnderChicken extends Monster implements GeoEntity {
         return getEntityData().get(CHARGING);
     }
 
-    public void setCharging(boolean charging) {
+    public void setCharging(boolean charging, boolean peckOfDoom) {
         getEntityData().set(CHARGING, charging);
         if (!charging) {
-            nextChargeTime = tickCount + ServerConfig.getChargeInterval(getRandom());
+            if (peckOfDoom) {
+                nextPeckTime = tickCount + ServerConfig.getPeckInterval(getRandom());
+            } else {
+                nextChargeTime = tickCount + ServerConfig.getChargeInterval(getRandom());
+            }
         }
     }
 
@@ -735,6 +791,9 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     public void setFiringLaser(boolean firing) {
+        if (firing && !isFiringLaser()) {
+            firingProgress = 0;
+        }
         getEntityData().set(FIRING, firing);
         if (!firing) {
             nextLaserTime = tickCount + ServerConfig.getLaserInterval(getRandom());
@@ -822,14 +881,6 @@ public class EnderChicken extends Monster implements GeoEntity {
         }
     }
 
-    public LivingEntity getForceFieldAttacker() {
-        return forceFieldAttacker;
-    }
-
-    public void setForceFieldAttacker(LivingEntity attacker) {
-        forceFieldAttacker = attacker;
-    }
-
     public void resetShouldClearArea() {
         clearAreaNeeded = false;
     }
@@ -873,10 +924,11 @@ public class EnderChicken extends Monster implements GeoEntity {
         );
     }
 
-    public void launchEggBomb(float speed) {
+    public void launchEggBomb(float speed, boolean huntTarget) {
         float scale = getScale();
         Vec3 launchPos = getHeadPos(-3.5, -2.0);
         EggBomb egg = new EggBomb(level(), this);
+        egg.huntTarget(huntTarget);
         egg.setPos(launchPos);
         egg.shootFromRotation(this, 0f, getYRot() - 180f, 0f, speed, 1f);
         playSound(SoundEvents.CHICKEN_EGG, 1.0F + 0.2F * scale, (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2F + 1.0F);
@@ -887,8 +939,8 @@ public class EnderChicken extends Monster implements GeoEntity {
         return tickCount >= nextSpinTime;
     }
 
-    public boolean isChargeReady() {
-        return tickCount >= nextChargeTime;
+    public boolean isChargeReady(boolean peckOfDoom) {
+        return tickCount >= (peckOfDoom ? nextPeckTime : nextChargeTime);
     }
 
     public boolean isStampedeReady() {
@@ -912,6 +964,14 @@ public class EnderChicken extends Monster implements GeoEntity {
 
     public double getLaserLength() {
         return laserLength;
+    }
+
+    public boolean hasCluckstormed() {
+        return hasCluckstormed;
+    }
+
+    public void setHasCluckstormed() {
+        hasCluckstormed = true;
     }
 
     private static class ChickenNearestTargetGoal<T extends LivingEntity> extends NearestAttackableTargetGoal<T> {
@@ -938,6 +998,13 @@ public class EnderChicken extends Monster implements GeoEntity {
         @Override
         protected boolean resetXRotOnTick() {
             return !isFiringLaser();
+        }
+
+        @Override
+        public void tick() {
+            if (!isSpinning()) {
+                super.tick();
+            }
         }
     }
 }

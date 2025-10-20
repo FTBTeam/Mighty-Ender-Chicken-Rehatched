@@ -4,14 +4,15 @@ import dev.ftb.mods.mecrh.entity.EnderChicken;
 import dev.ftb.mods.mecrh.entity.ai.ChickenLaserGoal;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 
 public class ChickenMusicLoop extends AbstractTickableSoundInstance {
     private final EnderChicken chicken;
 
     public ChickenMusicLoop(SoundEvent sound, EnderChicken chicken, float volume, float pitch) {
-        super(sound, chicken.getSoundSource(), chicken.getRandom());
-        this.chicken = chicken;
+        super(sound, SoundSource.RECORDS, chicken.getRandom());
 
+        this.chicken = chicken;
         this.volume = volume;
         this.pitch = pitch;
         this.attenuation = Attenuation.NONE;

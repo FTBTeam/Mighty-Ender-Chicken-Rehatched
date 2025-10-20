@@ -7,22 +7,19 @@ import dev.ftb.mods.mecrh.registry.ModSounds;
 import java.util.EnumSet;
 
 public class ChickenSpinGoal extends ChickenGoal {
-    private int time;
+    public static final int MAX_SPIN_TIME = 100;
+    private int spinTicks;
 
     public ChickenSpinGoal(EnderChicken chicken) {
         super(chicken);
+
         setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
     }
 
     @Override
     public boolean canUse() {
-        if (chicken.canUseAbility() && !chicken.isClearingArea() && !chicken.isSpinning() && chicken.isSpinReady()) {
-            var target = chicken.getTarget();
-            if (target != null && target.isAlive()) {
-                return chicken.canUseAbility() && !chicken.isFiringLaser() && chicken.isAlive();
-            } else {
-                return false;
-            }
+        if (chicken.canUseAbility() && !chicken.isClearingArea() && !chicken.isSpinning() && chicken.isSpinReady() && !chicken.isFiringLaser()) {
+            return chicken.getTarget() != null && chicken.getTarget().isAlive();
         } else {
             return false;
         }
@@ -30,13 +27,13 @@ public class ChickenSpinGoal extends ChickenGoal {
 
     @Override
     public boolean canContinueToUse() {
-        return chicken.isAlive() && time < 100;
+        return chicken.isAlive() && spinTicks < MAX_SPIN_TIME;
     }
 
     @Override
     public void start() {
         chicken.useAbility();
-        time = 0;
+        spinTicks = 0;
         chicken.setSpinning(true);
     }
 
@@ -48,16 +45,16 @@ public class ChickenSpinGoal extends ChickenGoal {
 
     @Override
     public void tick() {
-        ++time;
+        ++spinTicks;
 
-        if (time == 10) {
+        if (spinTicks == 10) {
             chicken.playSound(ModSounds.CHICKEN_SPIN.get(), 1.0F, 1.0F);
         }
 
-        if (time > 10) {
-            float eggChance = time / 100.0F * 0.5F;
+        if (spinTicks > 10) {
+            float eggChance = spinTicks / (MAX_SPIN_TIME * 0.5F);
             if (chicken.getRandom().nextFloat() < eggChance) {
-                chicken.launchEggBomb(ServerConfig.getEggSpeed(chicken.getRandom()));
+                chicken.launchEggBomb(ServerConfig.getEggSpeed(chicken.getRandom()), chicken.getRandom().nextBoolean());
             }
         }
 

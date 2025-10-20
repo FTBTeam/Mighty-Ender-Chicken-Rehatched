@@ -14,6 +14,7 @@ import net.minecraft.world.phys.Vec3;
 
 public class EggBomb extends ThrowableProjectile {
     public int explodeTimer;
+    private boolean huntTarget;
 
     public EggBomb(EntityType<EggBomb> entityEntityType, Level level) {
         super(entityEntityType, level);
@@ -27,6 +28,10 @@ public class EggBomb extends ThrowableProjectile {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
     }
 
+    public void huntTarget(boolean huntTarget) {
+        this.huntTarget = huntTarget;
+    }
+
     @Override
     public void tick() {
         super.tick();
@@ -36,11 +41,11 @@ public class EggBomb extends ThrowableProjectile {
                 explode();
             }
 
-            if (tickCount > 80) {
+            if (tickCount > 100) {
                 explode();
             }
 
-            if (getRandom().nextFloat() < 0.4f && getOwner() instanceof EnderChicken chicken && chicken.getTarget() != null) {
+            if (huntTarget && getRandom().nextFloat() < 0.6f && getOwner() instanceof EnderChicken chicken && chicken.getTarget() != null) {
                 Vec3 offset = chicken.getTarget().position().subtract(position());
                 setDeltaMovement(getDeltaMovement().add(offset.normalize().scale(0.1).add(0, 0.1, 0)));
             }

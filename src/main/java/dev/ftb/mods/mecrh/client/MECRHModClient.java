@@ -56,6 +56,7 @@ public class MECRHModClient {
 
     public static void startMusicLoop(EnderChicken chicken) {
         var sound = new ChickenMusicLoop(ModSounds.CHAOS_MUSIC.get(), chicken, 1.0F, 1.0F);
+        Minecraft.getInstance().getMusicManager().stopPlaying();
         Minecraft.getInstance().getSoundManager().play(sound);
     }
 }

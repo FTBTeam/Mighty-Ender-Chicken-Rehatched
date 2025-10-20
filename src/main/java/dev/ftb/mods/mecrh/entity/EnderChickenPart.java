@@ -47,7 +47,6 @@ public class EnderChickenPart extends PartEntity<EnderChicken> {
     @Override
     public boolean isPickable() {
         return true;
-//        return type != PartType.FORCEFIELD || !getParent().isForceField();
     }
 
     @Nullable
@@ -58,7 +57,7 @@ public class EnderChickenPart extends PartEntity<EnderChicken> {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        return !this.isInvulnerableTo(source) && getParent().attackFromPart(source, this, amount);
+        return source.getEntity() != getParent() && !this.isInvulnerableTo(source) && getParent().attackFromPart(source, this, amount);
     }
 
     @Override
@@ -91,7 +90,6 @@ public class EnderChickenPart extends PartEntity<EnderChicken> {
         WING_R,
         HEAD,
         BILL,
-//        FORCEFIELD
     }
 
     public AABB getBlockDestructionAABB() {

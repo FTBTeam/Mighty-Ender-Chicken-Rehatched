@@ -2,7 +2,9 @@ package dev.ftb.mods.mecrh.registry;
 
 import dev.ftb.mods.mecrh.MECRHMod;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.sounds.Music;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -39,5 +41,9 @@ public class ModSounds {
 
     private static DeferredHolder<SoundEvent,SoundEvent> registerFixed(String name, float range) {
         return SOUNDS.register(name, () -> SoundEvent.createFixedRangeEvent(MECRHMod.id(name), range));
+    }
+
+    public static class Musics {
+        public static final Music CHICKEN_OF_CHAOS = new Music(CHAOS_MUSIC, 0, 0, true);
     }
 }
