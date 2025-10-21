@@ -20,6 +20,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer;
 import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 import software.bernie.geckolib.renderer.specialty.DynamicGeoEntityRenderer;
 
@@ -30,6 +31,8 @@ public class EnderChickenRenderer extends DynamicGeoEntityRenderer<EnderChicken>
         super(renderManager, new EnderChickenModel());
 
         addRenderLayer(new LaserLayer());
+        // FIXME this doesn't work for some reason? just makes the glowing pixels not render at all :(
+//        addRenderLayer(new ChickenGlowLayer());
     }
 
     public static EnderChickenRenderer scaled(EntityRendererProvider.Context renderManager, float scale) {
@@ -43,20 +46,21 @@ public class EnderChickenRenderer extends DynamicGeoEntityRenderer<EnderChicken>
 
     @Override
     protected @Nullable RenderType getRenderTypeOverrideForBone(GeoBone bone, EnderChicken animatable, ResourceLocation texturePath, MultiBufferSource bufferSource, float partialTick) {
-        if (!isShieldBone(bone)) {
-            return super.getRenderTypeOverrideForBone(bone, animatable, texturePath, bufferSource, partialTick);
+        if (isShieldBone(bone)) {
+            float f = (float) animatable.tickCount + partialTick;
+            return RenderType.energySwirl(SHIELD_TEXTURE, xOffset(f) % 1.0F, f * 0.01F % 1.0F);
+        } else {
+            return null;
         }
-        float f = (float) animatable.tickCount + partialTick;
-        return RenderType.energySwirl(SHIELD_TEXTURE, xOffset(f) % 1.0F, f * 0.01F % 1.0F);
+    }
+
+    private static float xOffset(float tickCount) {
+        return Mth.cos(tickCount * 0.01F) * 3.0F;
     }
 
     @Override
     protected boolean boneRenderOverride(PoseStack poseStack, GeoBone bone, MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay, int colour) {
         return isShieldBone(bone) && !animatable.isForceField();
-    }
-
-    private float xOffset(float tickCount) {
-        return Mth.cos(tickCount * 0.01F) * 3.0F;
     }
 
     private boolean isShieldBone(GeoBone bone) {
@@ -133,6 +137,19 @@ public class EnderChickenRenderer extends DynamicGeoEntityRenderer<EnderChicken>
                     .setOverlay(OverlayTexture.NO_OVERLAY)
                     .setLight(LightTexture.FULL_BRIGHT)
                     .setNormal(pose, 0.0F, 1.0F, 0.0F);
+        }
+    }
+
+    private class ChickenGlowLayer extends AutoGlowingGeoLayer<EnderChicken> {
+        public ChickenGlowLayer() {
+            super(EnderChickenRenderer.this);
+        }
+
+        @Override
+        public void render(PoseStack poseStack, EnderChicken animatable, BakedGeoModel bakedModel, @Nullable RenderType renderType, MultiBufferSource bufferSource, @Nullable VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {
+            if (animatable.isFiringLaser()) {
+                super.render(poseStack, animatable, bakedModel, renderType, bufferSource, buffer, partialTick, packedLight, packedOverlay);
+            }
         }
     }
 }

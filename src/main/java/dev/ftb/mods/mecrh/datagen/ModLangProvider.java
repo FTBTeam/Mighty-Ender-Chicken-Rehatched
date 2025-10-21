@@ -17,6 +17,10 @@ public class ModLangProvider extends LanguageProvider {
         add(ModEntityTypes.EGG_BOMB.get(), "Egg Bomb");
 
         add(ModItems.ENDER_CHICKEN_SPAWN_EGG.get(), "Ender Chicken Spawn Egg");
+        add(ModItems.RECORD_CHAOS_MUSIC.get(), "Music Disc");
+        add(ModItems.TEST_STICK.get(), "Test Stick");
+
+        add("item.mecrh.music_disc_chicken_of_chaos.desc", "FTB Team - Chicken of Chaos");
 
         add("mecrh.message.wrong_forcefield_item", "Invalid weapon for the forcefield!");
 

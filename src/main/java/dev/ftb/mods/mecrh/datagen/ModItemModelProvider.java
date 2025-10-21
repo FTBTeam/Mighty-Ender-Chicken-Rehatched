@@ -18,5 +18,7 @@ public class ModItemModelProvider extends ItemModelProvider {
     @Override
     protected void registerModels() {
         ModItems.getSpawnEggs().forEach(egg -> withExistingParent(egg.getId().getPath(), TEMPLATE_SPAWN_EGG));
+        basicItem(ModItems.RECORD_CHAOS_MUSIC.get());
+        basicItem(ModItems.TEST_STICK.get());
     }
 }

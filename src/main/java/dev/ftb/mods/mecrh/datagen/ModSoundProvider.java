@@ -42,5 +42,8 @@ public class ModSoundProvider extends SoundDefinitionsProvider {
                 .subtitle("mecrh.subtitle.laser_end"));
         add(ModSounds.CHAOS_MUSIC, SoundDefinition.definition()
                 .with(sound(MECRHMod.id("chicken_of_chaos")).stream()));
+        add(ModSounds.CHAOS_HURT, SoundDefinition.definition()
+                .with(sound(MECRHMod.id("chaos_hurt")))
+                .subtitle("mecrh.subtitle.chaos_hurt"));
     }
 }

@@ -2,6 +2,7 @@ package dev.ftb.mods.mecrh.datagen;
 
 import dev.ftb.mods.mecrh.MECRHMod;
 import dev.ftb.mods.mecrh.MECRHTags;
+import dev.ftb.mods.mecrh.registry.ModItems;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.tags.ItemTagsProvider;
@@ -30,8 +31,7 @@ public class ModTagsProvider {
 
         @Override
         protected void addTags(HolderLookup.Provider provider) {
-            // TODO temp testing item
-            tag(MECRHTags.Items.CHICKEN_STICKS).add(net.minecraft.world.item.Items.STICK);
+            tag(MECRHTags.Items.CHICKEN_STICKS).add(ModItems.TEST_STICK.get());
         }
     }
 }

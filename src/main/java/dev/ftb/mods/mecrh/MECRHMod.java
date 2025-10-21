@@ -1,5 +1,6 @@
 package dev.ftb.mods.mecrh;
 
+import dev.ftb.mods.ftblibrary.FTBLibrary;
 import dev.ftb.mods.ftblibrary.config.manager.ConfigManager;
 import dev.ftb.mods.mecrh.config.ServerConfig;
 import dev.ftb.mods.mecrh.datagen.DataGenerators;
@@ -75,6 +76,10 @@ public class MECRHMod {
                     event.accept(egg);
                 }
             });
+        } else if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ModItems.RECORD_CHAOS_MUSIC);
+        } else if (event.getTab() == FTBLibrary.getCreativeModeTab().get()) {
+            event.accept(ModItems.TEST_STICK);
         }
     }
 
@@ -93,8 +98,8 @@ public class MECRHMod {
 
     private void onTarget(LivingChangeTargetEvent event) {
         LivingEntity newTarget = event.getNewAboutToBeSetTarget();
-        if (event.getEntity() instanceof EnderChicken && newTarget != null && ChickenUtils.hasChickenBoss(newTarget)
-                || ChickenUtils.hasChickenBoss(event.getEntity()) && newTarget instanceof EnderChicken)
+        if (event.getEntity() instanceof EnderChicken && ChickenUtils.isEnderChickenFriend(newTarget)
+                || newTarget instanceof EnderChicken && ChickenUtils.isEnderChickenFriend(event.getEntity()))
         {
             event.setCanceled(true);
         }

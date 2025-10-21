@@ -2,8 +2,10 @@ package dev.ftb.mods.mecrh.entity.ai;
 
 import dev.ftb.mods.mecrh.config.ServerConfig;
 import dev.ftb.mods.mecrh.entity.EnderChicken;
+import dev.ftb.mods.mecrh.event.EnderChickenEvent;
 import dev.ftb.mods.mecrh.registry.ModAttachments;
 import dev.ftb.mods.mecrh.registry.ModSounds;
+import dev.ftb.mods.mecrh.util.ChickenUtils;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
@@ -13,6 +15,8 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
 public class ChickenStampedeGoal extends ChickenGoal {
+    private int stampedeCount = 0;
+
     public ChickenStampedeGoal(EnderChicken chicken) {
         super(chicken);
     }
@@ -29,6 +33,8 @@ public class ChickenStampedeGoal extends ChickenGoal {
 
     @Override
     public void start() {
+        stampedeCount++;
+
         int zombieCount = ServerConfig.getBabyZombieCount(chicken.getRandom());
 
         for (int i = 0; i < zombieCount; i++) {
@@ -48,6 +54,10 @@ public class ChickenStampedeGoal extends ChickenGoal {
             if (chicken.level() instanceof ServerLevel serverLevel) {
                 serverLevel.sendParticles(new DustParticleOptions(new Vector3f(0.8f, 0.8f, 0.2f), 1f), spawnPos.x, spawnPos.y, spawnPos.z, 15, 0.2, 0.2, 0.2, 0.1);
             }
+        }
+
+        if (stampedeCount == 1) {
+            ChickenUtils.postChickenEvent(chicken, EnderChickenEvent.Phase.STAMPEDE_THRESHOLD);
         }
 
         chicken.scheduleNextStampede();

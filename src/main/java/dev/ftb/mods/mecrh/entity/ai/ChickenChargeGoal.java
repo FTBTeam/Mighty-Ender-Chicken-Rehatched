@@ -3,21 +3,18 @@ package dev.ftb.mods.mecrh.entity.ai;
 import dev.ftb.mods.mecrh.config.ServerConfig;
 import dev.ftb.mods.mecrh.entity.EnderChicken;
 import dev.ftb.mods.mecrh.registry.ModSounds;
-import net.minecraft.core.BlockPos;
+import dev.ftb.mods.mecrh.util.ChickenUtils;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.EnumSet;
@@ -59,7 +56,7 @@ public class ChickenChargeGoal extends ChickenGoal {
         return chicken.isAlive()
                 && chargeTime < totalDuration
                 && chargeStart.distanceToSqr(chicken.position()) < ServerConfig.MAX_CHARGE_DIST.get() * ServerConfig.MAX_CHARGE_DIST.get()
-                && (chargePos != null && chargePos.distanceToSqr(chicken.position()) > 2.0 || peckOfDoom)
+                && (peckOfDoom || chargePos == null || chargePos.distanceToSqr(chicken.position()) > 2.0)
                 && chicken.isWithinRestriction();
     }
 
@@ -86,7 +83,8 @@ public class ChickenChargeGoal extends ChickenGoal {
 
         if (chargeTime < warmupTime) {
             if (chargeTime == 0) {
-                chicken.playSound(SoundEvents.ENDER_DRAGON_GROWL, 1.2F, 0.8F + chicken.getRandom().nextFloat() * 0.4F);
+                float p = peckOfDoom ? 1.2F : 0.8F;
+                chicken.playSound(SoundEvents.ENDER_DRAGON_GROWL, 1.2F, p + chicken.getRandom().nextFloat() * 0.4F);
             }
             chicken.setYRot(chicken.yBodyRot);
             if (target != null) {
@@ -101,7 +99,7 @@ public class ChickenChargeGoal extends ChickenGoal {
 
                 if (peckOfDoom) {
                     // fly to above target's head
-                    chargePos = chargePos.add(0.0, 6.0, 0.0);
+                    chargePos = chargePos.add(0.0, ServerConfig.DIST_ABOVE_TARGET.get(), 0.0);
                 } else {
                     chicken.playSound(ModSounds.CHARGE_START.get(), 1.2F, 0.8F);
                 }
@@ -123,11 +121,12 @@ public class ChickenChargeGoal extends ChickenGoal {
                 }
             } else {
                 // chicken smashes through terrain
-                destroyBlocksInAABB(chicken, chicken.partBody.getBlockDestructionAABB());
-                destroyBlocksInAABB(chicken, chicken.partHead.getBlockDestructionAABB());
-                destroyBlocksInAABB(chicken, chicken.partBill.getBlockDestructionAABB());
-                destroyBlocksInAABB(chicken, chicken.partFootL.getBlockDestructionAABB().move(0, 1, 0));
-                destroyBlocksInAABB(chicken, chicken.partFootR.getBlockDestructionAABB().move(0, 1, 0));
+                Vec3 vec = chargePos.subtract(chicken.position()).normalize();
+                ChickenUtils.destroyBlocksInAABB(chicken, chicken.partBody.getBlockDestructionAABB().expandTowards(vec));
+                ChickenUtils.destroyBlocksInAABB(chicken, chicken.partHead.getBlockDestructionAABB().expandTowards(vec));
+                ChickenUtils.destroyBlocksInAABB(chicken, chicken.partBill.getBlockDestructionAABB().expandTowards(vec));
+                ChickenUtils.destroyBlocksInAABB(chicken, chicken.partFootL.getBlockDestructionAABB().expandTowards(vec).move(0, 1, 0));
+                ChickenUtils.destroyBlocksInAABB(chicken, chicken.partFootR.getBlockDestructionAABB().expandTowards(vec).move(0, 1, 0));
 
                 if (peckOfDoom) {
                     Vec3 offset = chargePos.subtract(chicken.position());
@@ -197,18 +196,6 @@ public class ChickenChargeGoal extends ChickenGoal {
                 e.hasImpulse = true;
             }
             e.hurt(level.damageSources().mobAttack(chicken), ServerConfig.CHARGE_DAMAGE.get().floatValue());
-        });
-    }
-
-    static void destroyBlocksInAABB(Entity ent, AABB aabb) {
-        BlockPos.betweenClosedStream(aabb).forEach(pos -> {
-            BlockState state = ent.level().getBlockState(pos);
-            if (!state.isAir() && !state.is(BlockTags.FIRE)
-                    && state.getBlock().canEntityDestroy(state, ent.level(), pos, ent)
-                    && state.getDestroySpeed(ent.level(), pos) >= 0)
-            {
-                ent.level().destroyBlock(pos, ServerConfig.CHARGE_DROPS_BLOCKS.get());
-            }
         });
     }
 }

@@ -3,7 +3,9 @@ package dev.ftb.mods.mecrh.entity.ai;
 import dev.ftb.mods.mecrh.MECRHMod;
 import dev.ftb.mods.mecrh.config.ServerConfig;
 import dev.ftb.mods.mecrh.entity.EnderChicken;
+import dev.ftb.mods.mecrh.event.EnderChickenEvent;
 import dev.ftb.mods.mecrh.registry.ModAttachments;
+import dev.ftb.mods.mecrh.util.ChickenUtils;
 import dev.ftb.mods.mecrh.util.Raytracing;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.resources.ResourceLocation;
@@ -70,6 +72,8 @@ public class ChickenCluckstormGoal extends ChickenGoal {
 
         Vec3 offset = startTarget.subtract(chicken.partBill.position());
         targetYaw = (float) Math.atan2(offset.z, offset.x);
+
+        ChickenUtils.postChickenEvent(chicken, EnderChickenEvent.Phase.STAMPEDE_THRESHOLD);
     }
 
     @Override
@@ -95,11 +99,13 @@ public class ChickenCluckstormGoal extends ChickenGoal {
         if (chicken.getFiringProgress() == ChickenLaserGoal.WARMUP_TIME) {
             spawnStrayRiders();
         }
+
     }
 
     private void spawnStrayRiders() {
-        for (int i = 0; i < 6; i++) {
-            float angle = 360f / 6 * i * Mth.DEG_TO_RAD;
+        int nMobs = ServerConfig.STRAY_COUNT.get();
+        for (int i = 0; i < nMobs; i++) {
+            float angle = 360f / nMobs * i * Mth.DEG_TO_RAD;
             float dist = 3 + chicken.getRandom().nextFloat() * 4.0f;
             Vec3 spawnPos = chicken.position().add(Mth.cos(angle) * dist, 0, Math.sin(angle) * dist);
             int y = chicken.level().getHeight(Heightmap.Types.WORLD_SURFACE, (int)spawnPos.x, (int)spawnPos.z);

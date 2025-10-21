@@ -1,4 +1,10 @@
 {
+  "chaos_hurt": {
+    "sounds": [
+      "mecrh:chaos_hurt"
+    ],
+    "subtitle": "mecrh.subtitle.chaos_hurt"
+  },
   "charge_start": {
     "sounds": [
       "mecrh:charge_start"

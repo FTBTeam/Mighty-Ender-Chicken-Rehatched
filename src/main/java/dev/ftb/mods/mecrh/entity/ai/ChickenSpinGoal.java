@@ -3,6 +3,7 @@ package dev.ftb.mods.mecrh.entity.ai;
 import dev.ftb.mods.mecrh.config.ServerConfig;
 import dev.ftb.mods.mecrh.entity.EnderChicken;
 import dev.ftb.mods.mecrh.registry.ModSounds;
+import dev.ftb.mods.mecrh.util.ChickenUtils;
 
 import java.util.EnumSet;
 
@@ -58,9 +59,9 @@ public class ChickenSpinGoal extends ChickenGoal {
             }
         }
 
-        ChickenChargeGoal.destroyBlocksInAABB(chicken, chicken.partWingL.getBlockDestructionAABB());
-        ChickenChargeGoal.destroyBlocksInAABB(chicken, chicken.partWingR.getBlockDestructionAABB());
-        ChickenChargeGoal.destroyBlocksInAABB(chicken, chicken.partHead.getBlockDestructionAABB());
-        ChickenChargeGoal.destroyBlocksInAABB(chicken, chicken.partBill.getBlockDestructionAABB());
+        ChickenUtils.destroyBlocksInAABB(chicken, chicken.partWingL.getBlockDestructionAABB());
+        ChickenUtils.destroyBlocksInAABB(chicken, chicken.partWingR.getBlockDestructionAABB());
+        ChickenUtils.destroyBlocksInAABB(chicken, chicken.partHead.getBlockDestructionAABB());
+        ChickenUtils.destroyBlocksInAABB(chicken, chicken.partBill.getBlockDestructionAABB());
     }
 }

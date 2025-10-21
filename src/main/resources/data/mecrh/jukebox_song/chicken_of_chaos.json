@@ -1,0 +1,8 @@
+{
+  "comparator_output": 1,
+  "description": {
+    "translate": "item.mecrh.music_disc_chicken_of_chaos.desc"
+  },
+  "length_in_seconds": 217.0,
+  "sound_event": "mecrh:chicken_of_chaos"
+}

@@ -2,9 +2,11 @@ package dev.ftb.mods.mecrh.registry;
 
 import dev.ftb.mods.mecrh.MECRHMod;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.Music;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.item.JukeboxSong;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -45,5 +47,10 @@ public class ModSounds {
 
     public static class Musics {
         public static final Music CHICKEN_OF_CHAOS = new Music(CHAOS_MUSIC, 0, 0, true);
+    }
+
+    public static class JukeboxSongs {
+        public static final ResourceKey<JukeboxSong> CHICKEN_OF_CHAOS
+                = ResourceKey.create(Registries.JUKEBOX_SONG, MECRHMod.id("chicken_of_chaos"));
     }
 }

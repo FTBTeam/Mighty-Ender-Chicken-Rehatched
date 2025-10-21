@@ -7,6 +7,7 @@ import dev.ftb.mods.mecrh.client.MECRHModClient;
 import dev.ftb.mods.mecrh.config.ServerConfig;
 import dev.ftb.mods.mecrh.entity.EnderChickenPart.PartType;
 import dev.ftb.mods.mecrh.entity.ai.*;
+import dev.ftb.mods.mecrh.event.EnderChickenEvent.Phase;
 import dev.ftb.mods.mecrh.registry.ModAttachments;
 import dev.ftb.mods.mecrh.registry.ModSounds;
 import dev.ftb.mods.mecrh.util.ChickenUtils;
@@ -60,7 +61,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.CampfireBlock;
-import net.minecraft.world.level.block.LevelEvent;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.*;
@@ -94,7 +94,7 @@ public class EnderChicken extends Monster implements GeoEntity {
     public static final RawAnimation PECK_ANIMATION = RawAnimation.begin().thenPlay("attack.peck");
 
     public static final Predicate<? super Entity> PREDICATE_TARGETS
-            = EntitySelector.NO_CREATIVE_OR_SPECTATOR.and(EntitySelector.LIVING_ENTITY_STILL_ALIVE);//.and(e -> e.canBeCollidedWith() && e.tickCount > 60);
+            = EntitySelector.NO_CREATIVE_OR_SPECTATOR.and(EntitySelector.LIVING_ENTITY_STILL_ALIVE).and(e -> !e.isPassenger());//.and(e -> e.canBeCollidedWith() && e.tickCount > 60);
 
     public static final int SPAWNING_INTRO_TIME = 80; // ticks
 
@@ -105,11 +105,9 @@ public class EnderChicken extends Monster implements GeoEntity {
     private int abilityInUse;
     private boolean clearAreaNeeded;
     private int firingProgress;
-    private int maxStrafingRunTime;
     private boolean inIntroPhase;
     private int forcefieldLevel; // positive -> number of hits needed to break it, negative -> time till activation
     private final Object2LongMap<UUID> forceFieldInformed = new Object2LongOpenHashMap<>();
-    private UUID zombieRiderId = null; // used when restoring from NBT
     private Zombie zombieRider;
     private int spinTime;
     private int nextSpinTime;
@@ -119,12 +117,12 @@ public class EnderChicken extends Monster implements GeoEntity {
     private int nextLaserTime;
     private double laserLength;
     private int projectileImmuneTicks;
-    private int ticksToLeap = 30;
     private boolean hasCluckstormed;
+    private int despawnTimer;
 
     private final ServerBossEvent bossEvent = new ServerBossEvent(
             Component.translatable("entity.mecrh.ender_chicken"),
-            BossEvent.BossBarColor.PINK, BossEvent.BossBarOverlay.NOTCHED_12
+            BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.NOTCHED_12
     );
     private final EnderChickenPart[] subParts;
     public final EnderChickenPart partFootL;
@@ -382,12 +380,12 @@ public class EnderChicken extends Monster implements GeoEntity {
         BlockState state = level().getBlockState(pos);
 
         if (!state.isAir() && state.getDestroySpeed(level(), pos) > 0 && !state.is(MECRHTags.Blocks.CHICKEN_UNBREAKABLE)) {
-            level().destroyBlock(pos, false);
+            ChickenUtils.destroyBlock(this, pos);
             for (Direction dir : Direction.values()) {
                 BlockPos pos2 = pos.relative(dir);
                 if (random.nextFloat() < 0.5f) {
                     if (!state.isAir() && state.getDestroySpeed(level(), pos2) > 0 && !state.is(MECRHTags.Blocks.CHICKEN_UNBREAKABLE)) {
-                        level().destroyBlock(pos, false);
+                        ChickenUtils.destroyBlock(this, pos);
                     }
                 }
             }
@@ -422,13 +420,12 @@ public class EnderChicken extends Monster implements GeoEntity {
         }
 
         if (tickCount == 1) {
-            if (zombieRiderId != null && ((ServerLevel) level()).getEntity(zombieRiderId) instanceof Zombie z && z.isBaby()) {
-                // restoring from NBT
-                zombieRider = z;
+            if (!inIntroPhase && !hasPassenger(e -> e.getType() == EntityType.ZOMBIE)) {
+                spawnZombieRider(true);
             }
         } else if (tickCount == SPAWNING_INTRO_TIME - 20) {
             if (zombieRider == null) {
-                spawnZombieRider();
+                spawnZombieRider(false);
             }
         } else if (isInIntroPhase()) {
             if (tickCount == SPAWNING_INTRO_TIME) {
@@ -440,6 +437,7 @@ public class EnderChicken extends Monster implements GeoEntity {
                 playSound(SoundEvents.BELL_BLOCK, 2f, 0.6f);
                 setForceField(true);
                 inIntroPhase = false;
+                ChickenUtils.postChickenEvent(this, Phase.SHIELDED_ENTRY);
             } else if (tickCount == SPAWNING_INTRO_TIME + 10) {
                 playSound(SoundEvents.CHICKEN_HURT, 2f, 0.7f);
             }
@@ -475,22 +473,21 @@ public class EnderChicken extends Monster implements GeoEntity {
             }
         }
 
-        if (getTarget() != null && getTarget().isAlive() && getNavigation().getPath() == null && onGround()) {
-            ticksToLeap = 30;
-        }
-        if (--ticksToLeap >= 0) {
-            if (ticksToLeap % 10 == 0) {
-//                setDeltaMovement(getDeltaMovement().add(0, 0.4, 0));
-                playSound(SoundEvents.PHANTOM_FLAP);
+        if (tickCount % 20 == 0 && ServerConfig.DESPAWN_TIME_NO_PLAYERS.get() > 0) {
+            if (countPlayersInArena() == 0) {
+                if (++despawnTimer >= ServerConfig.DESPAWN_TIME_NO_PLAYERS.get()) {
+                    discard();
+                }
+            } else {
+                despawnTimer = 0;
             }
         }
     }
 
-    private void spawnZombieRider() {
-        // TODO position zombie rider appropriately based on blocks above chicken
+    private void spawnZombieRider(boolean immediate) {
         zombieRider = new Zombie(level());
         zombieRider.setBaby(true);
-        zombieRider.setPos(position().add(0, 20, 0));
+        zombieRider.setPos(position().add(0, ServerConfig.ZOMBIE_RIDER_SPAWN_HEIGHT.get(), 0));
         zombieRider.setXRot(getXRot());
         zombieRider.setYRot(getYRot());
         zombieRider.setInvulnerable(true);
@@ -500,6 +497,10 @@ public class EnderChicken extends Monster implements GeoEntity {
             scaleAttr.addPermanentModifier(new AttributeModifier(RIDER_SCALE_MOD, ZOMBIE_RIDER_SCALE, Operation.ADD_MULTIPLIED_BASE));
         }
         level().addFreshEntity(zombieRider);
+        if (immediate) {
+            zombieRider.setNoAi(true);
+            zombieRider.startRiding(this);
+        }
     }
 
     private void updateZombieRider() {
@@ -532,17 +533,18 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     @Override
-    public void remove(RemovalReason reason) {
-        super.remove(reason);
-    }
-
-    @Override
     protected void tickDeath() {
         deathTime++;
 
         if (deathTime == 1) {
-            playSound(SoundEvents.ENDER_DRAGON_DEATH, 2f, 1f);
-        } else if (deathTime == 10) {
+            if (level().isClientSide()) {
+                AABB aabb = new AABB(blockPosition()).inflate(ServerConfig.ARENA_RADIUS.get());
+                level().getNearbyPlayers(TargetingConditions.forNonCombat(), this, aabb)
+                        .forEach(player -> player.playSound(SoundEvents.ENDER_DRAGON_DEATH));
+            } else {
+                ChickenUtils.postChickenEvent(this, Phase.DEATH_SEQUENCE);
+            }
+        } else if (deathTime == 10 && !level().isClientSide()) {
             BlockPos pos = Objects.requireNonNullElse(getRestrictCenter(), blockPosition());
             AABB aabb = new AABB(pos).inflate(ServerConfig.ARENA_RADIUS.get() * 2);
             level().getNearbyEntities(LivingEntity.class, TargetingConditions.forNonCombat(), this, aabb).forEach(entity -> {
@@ -552,16 +554,16 @@ public class EnderChicken extends Monster implements GeoEntity {
             });
         }
 
-        if (deathTime >= 10 && zombieRider != null) {
+        if (deathTime >= 10 && zombieRider != null && !level().isClientSide()) {
             zombieRider.discard();
             zombieRider = null;
         }
 
-        if (deathTime < 80) {
+        if (deathTime < 80 && level().isClientSide()) {
             Vec3 vec = position().add(random.nextDouble() * 8 - 4, 2 + random.nextDouble() * 6, random.nextDouble() * 8 - 4);
             level().addParticle(random.nextBoolean() ? ParticleTypes.FLAME : ParticleTypes.ASH, vec.x, vec.y, vec.z, 0, 0, 0);
             CampfireBlock.makeParticles(level(), blockPosition().above(3), false, true);
-            if (deathTime % 4 == 0) {
+            if (deathTime % 5 == 0) {
                 double x = getBoundingBox().minX + random.nextDouble() * getBoundingBox().getXsize();
                 double y = getBoundingBox().minY + random.nextDouble() * getBoundingBox().getYsize();
                 double z = getBoundingBox().minZ + random.nextDouble() * getBoundingBox().getZsize();
@@ -569,7 +571,7 @@ public class EnderChicken extends Monster implements GeoEntity {
             }
         }
 
-        if (deathTime >= 80) {
+        if (deathTime >= 80 && !level().isClientSide()) {
             remove(RemovalReason.KILLED);
             gameEvent(GameEvent.ENTITY_DIE);
         }
@@ -579,10 +581,10 @@ public class EnderChicken extends Monster implements GeoEntity {
     public void addAdditionalSaveData(CompoundTag compound) {
         super.addAdditionalSaveData(compound);
 
-        if (zombieRider != null) compound.putUUID("ZombieRiderId", zombieRider.getUUID());
         compound.putInt("ForceFieldLevel", forcefieldLevel);
         compound.putInt("NextSpinTime", nextSpinTime - tickCount);
         compound.putInt("NextChargeTime", nextChargeTime - tickCount);
+        compound.putInt("NextPeckTime", nextPeckTime - tickCount);
         compound.putInt("NextLaserTime", nextLaserTime - tickCount);
         if (inIntroPhase) compound.putBoolean("IntroPhase", true);
         if (projectileImmuneTicks > 0) compound.putInt("ProjectileImmuneTicks", projectileImmuneTicks);
@@ -595,20 +597,18 @@ public class EnderChicken extends Monster implements GeoEntity {
     public void readAdditionalSaveData(CompoundTag compound) {
         super.readAdditionalSaveData(compound);
 
-        if (compound.contains("ZombieRiderId")) zombieRiderId = compound.getUUID("ZombieRiderId");
         forcefieldLevel = compound.getInt("ForceFieldLevel");
         setForceField(forcefieldLevel > 0);
         nextSpinTime = compound.getInt("NextSpinTime");
         nextChargeTime = compound.getInt("NextChargeTime");
+        nextPeckTime = compound.getInt("NextPeckTime");
         nextLaserTime = compound.getInt("NextLaserTime");
         inIntroPhase = compound.getBoolean("IntroPhase");
         projectileImmuneTicks = compound.getInt("ProjectileImmuneTicks");
         hasCluckstormed = compound.getBoolean("HasCluckstormed");
         NbtUtils.readBlockPos(compound, "RestrictPos")
                 .ifPresent(pos -> restrictTo(pos, ServerConfig.ARENA_RADIUS.get()));
-        if (compound.getBoolean("Enraged")) {
-            setEnraged();
-        }
+        entityData.set(ENRAGED, compound.getBoolean("Enraged"));
         if (!inIntroPhase) {
             setSizeModifier(1.0);
         }
@@ -660,25 +660,34 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     public boolean attackFromPart(DamageSource source, EnderChickenPart part, float amount) {
-        if (!inIntroPhase() && isForceField() && source.getEntity() instanceof Player player) {
-            if (isForceFieldBreakingItem(player.getMainHandItem())) {
+        // Note: entities which can't break the shield can never hurt the chicken
+        // - includes living entities not holding a chicken stick, and all non-entity damage sources
+        if (isForceField()) {
+            if (attackerCanBreakForcefield(source.getEntity())) {
+                playSound(ModSounds.CHAOS_HURT.get());
                 if (!level().isClientSide() && --forcefieldLevel <= 0) {
                     setForceField(false);
                     playSound(SoundEvents.SHIELD_BREAK);
                 }
             } else {
-                if (!level().isClientSide()) {
+                if (source.getEntity() instanceof Player player) {
+                    player.hurt(source, amount);
                     long delta = level().getGameTime() - forceFieldInformed.getOrDefault(player.getUUID(), 0L);
                     if (delta > 100) {
                         player.displayClientMessage(Component.translatable("mecrh.message.wrong_forcefield_item"), true);
                         forceFieldInformed.put(player.getUUID(), level().getGameTime());
                     }
                 }
-                player.hurt(source, amount);
-                return false;
             }
+            return false;
         }
         return hurt(source, amount);
+    }
+
+    private boolean attackerCanBreakForcefield(Entity entity) {
+        return ServerConfig.NON_PLAYERS_IGNORE_SHIELD.get() ?
+                !(entity instanceof Player) :
+                entity instanceof LivingEntity l && l.getMainHandItem().is(MECRHTags.Items.CHICKEN_STICKS);
     }
 
     private boolean inIntroPhase() {
@@ -714,10 +723,10 @@ public class EnderChicken extends Monster implements GeoEntity {
         float yawRad = yBodyRot * Mth.DEG_TO_RAD;
         float xOff = Mth.cos(yawRad);
         float zOff = Mth.sin(yawRad);
-        float headYawRad = lerpTargetYRot() * Mth.DEG_TO_RAD;
+        float headYawRad = (yHeadRot * Mth.DEG_TO_RAD) + Mth.HALF_PI;
         float headPitchRad = lerpTargetXRot() * Mth.DEG_TO_RAD;
-        float xOffHead = Mth.cos(headYawRad + Mth.HALF_PI);
-        float zOffHead = Mth.sin(headYawRad + Mth.HALF_PI);
+        float xOffHead = Mth.cos(yawRad + Mth.HALF_PI);
+        float zOffHead = Mth.sin(yawRad + Mth.HALF_PI);
         float yOffHead = -Mth.sin(headPitchRad);
         float distOffHead = Mth.sin(headPitchRad) / 2f;
 
@@ -729,7 +738,9 @@ public class EnderChicken extends Monster implements GeoEntity {
         updatePartPos(partWingL, xOff * 2f, 3.5f, zOff * 2f);
         updatePartPos(partWingR, xOff * -2f, 3.5f, zOff * -2f);
         updatePartPos(partHead, xOffHead * (2f + distOffHead), 4.5f + yOffHead, zOffHead * (2f + distOffHead));
-        updatePartPos(partBill, xOffHead * (3f + distOffHead), 5.5f + yOffHead * 1.25f, zOffHead * (3f + distOffHead));
+
+        Vec3 headPos = partHead.position();
+        partBill.setPos(headPos.x + Mth.cos(headYawRad), headPos.y + 1.0, headPos.z + Mth.sin(headYawRad));
 
         for (int i = 0; i < subParts.length; i++) {
             subParts[i].xo = prevPartPos[i].x;
@@ -816,6 +827,8 @@ public class EnderChicken extends Monster implements GeoEntity {
         getEntityData().set(FORCEFIELD, forcefield);
         forcefieldLevel = forcefield ? ServerConfig.FORCEFIELD_LEVEL.get() : -ServerConfig.FORCEFIELD_INTERVAL.get();
         playSound(forcefield ? ModSounds.FF_ON.get() : ModSounds.FF_OFF.get(), 1.5f, 1f);
+
+        ChickenUtils.postChickenEvent(this, forcefield ? Phase.SHIELD_CYCLE : Phase.VULNERABLE_ASSAULT);
     }
 
     public boolean isSpinning() {
@@ -834,24 +847,14 @@ public class EnderChicken extends Monster implements GeoEntity {
         return firingProgress;
     }
 
-    public int getMaxStrafingRunTime() {
-        return maxStrafingRunTime;
-    }
-
-    public void setMaxStrafingRunTime(int maxStrafingRunTime) {
-        this.maxStrafingRunTime = maxStrafingRunTime;
-    }
-
     public void scheduleNextStampede() {
         nextStampedeTime = tickCount + ServerConfig.getStampedeInterval(getRandom());
     }
 
     public void setEnraged() {
         entityData.set(ENRAGED, true);
-
-        if (tickCount > 10) {
-            playSound(SoundEvents.CHICKEN_DEATH, 1f, 0.5f);
-        }
+        playSound(SoundEvents.CHICKEN_DEATH, 1f, 0.5f);
+        ChickenUtils.postChickenEvent(this, Phase.ENRAGE);
     }
 
     public boolean isEnraged() {
@@ -974,6 +977,17 @@ public class EnderChicken extends Monster implements GeoEntity {
         hasCluckstormed = true;
     }
 
+    private int countPlayersInArena() {
+        AABB aabb = new AABB(blockPosition()).inflate(ServerConfig.ARENA_RADIUS.get());
+        return (int) level().getNearbyPlayers(TargetingConditions.forNonCombat(), this, aabb).stream()
+                .filter(this::isInArena)
+                .count();
+    }
+
+    public boolean isInArena(Entity entity) {
+        return !hasRestriction() || getRestrictCenter().distToCenterSqr(entity.getX(), entity.getY(), entity.getZ()) < ServerConfig.getArenaRadiusSq();
+    }
+
     private static class ChickenNearestTargetGoal<T extends LivingEntity> extends NearestAttackableTargetGoal<T> {
         public ChickenNearestTargetGoal(Mob mob, Class<T> targetType, boolean mustSee, Predicate<LivingEntity> targetPredicate) {
             super(mob, targetType, mustSee, targetPredicate);
@@ -981,7 +995,9 @@ public class EnderChicken extends Monster implements GeoEntity {
 
         @Override
         public boolean canUse() {
-            return super.canUse() && !((EnderChicken) mob).isInIntroPhase();
+            return super.canUse()
+                    && !((EnderChicken) mob).isInIntroPhase()
+                    && target != null && !target.getType().is(MECRHTags.Entities.CHICKEN_FRIENDS);
         }
 
         @Override
