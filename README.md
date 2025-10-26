@@ -1,6 +1,18 @@
-# FTB (Mod Name)
+# FTB Mighty Ender Chicken Rehatched
 
-Use https://github.com/FTBTeam/FTB-Mods-Issues for any mod issues
+Our classic Mighty Ender Chicken is back, rehatched and ready to challenge you in the latest installment of FTB StoneBlock 4.
+
+## Features
+
+* New and improved Mighty Ender Chicken boss fight
+* This time, you've got a zombie controlling the chicken!
+* Reworked attacks and abilities to keep you on your toes
+* Bespoke boss music composed just for this fight (Music disc included!)
+
+## Requirements
+
+* [FTB Library](https://www.curseforge.com/minecraft/mc-mods/ftb-library-forge)
+* [Gecko Lib](https://www.curseforge.com/minecraft/mc-mods/geckolib)
 
 ## Support
 

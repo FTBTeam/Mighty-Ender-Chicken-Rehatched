@@ -6,11 +6,11 @@ license = "All Rights Reserved"
 modId = "${mod_id}"
 version = "${version}"
 displayName = "${mod_name}"
-displayURL = "https://www.curseforge.com/minecraft/mc-mods/ftb-mod-name"
+displayURL = "https://curseforge.com/minecraft/mc-mods/ftb-mighty-ender-chicken-rehatched"
 #logoFile = "logo.png"
 authors = "FTB Team"
 description = '''
-Description
+That's one Mighty ender chicken... And wait... IS THAT A ZOMBIE ON IT'S BACK?!
 '''
 
 [[dependencies.${mod_id}]]
@@ -19,3 +19,17 @@ mandatory = true
 versionRange = "${mod_loader_range}"
 ordering = "NONE"
 side="BOTH"
+
+[[dependencies.${mod_id}]]
+  modId="ftblibrary"
+  type="required"
+  versionRange="[${ftb_library_version},)"
+  ordering="NONE"
+  side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="geckolib"
+    type="required"
+    versionRange="[${geckolib_version},)"
+    ordering="NONE"
+    side="BOTH"

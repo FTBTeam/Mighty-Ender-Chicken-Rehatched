@@ -2,8 +2,8 @@ plugins {
 	id 'java-library'
 	id 'idea'
 	id 'maven-publish'
-	id 'net.neoforged.moddev' version '2.0.78'
-	id "me.modmuss50.mod-publish-plugin" version "0.8.3"
+	id 'net.neoforged.moddev' version '2.0.115'
+	id "me.modmuss50.mod-publish-plugin" version "1.0.0"
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -144,6 +144,8 @@ tasks.withType(ProcessResources).configureEach {
 			loader_version_range: loader_version_range,
 			// 99.9% of the time we're only going to target a very vague version of neoforge so this is fine.
 			mod_loader_range: mod_loader_range.replace("\${mc_base}", mcMinorAndPatch), // Replace the version in the mod loader range
+			ftb_library_version: ftb_library_version,
+			geckolib_version: geckolib_version
 	]
 
 	inputs.properties replaceProperties
@@ -194,6 +196,8 @@ publishMods {
 		projectId = project.curseforge_id
 		minecraftVersions.add(project.minecraft_version)
 		javaVersions.add(JavaVersion.VERSION_21)
+		requires("ftb-library-forge")
+		requires("geckolib")
 	}
 }
 
