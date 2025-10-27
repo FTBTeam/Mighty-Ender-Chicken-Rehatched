@@ -828,12 +828,14 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     public void setForceField(boolean forcefield, boolean postEvent) {
-        getEntityData().set(FORCEFIELD, forcefield);
-        forcefieldLevel = forcefield ? ServerConfig.FORCEFIELD_LEVEL.get() : -ServerConfig.FORCEFIELD_INTERVAL.get();
-        playSound(forcefield ? ModSounds.FF_ON.get() : ModSounds.FF_OFF.get(), 1.5f, 1f);
+        if (forcefield != isForceField()) {
+            getEntityData().set(FORCEFIELD, forcefield);
+            forcefieldLevel = forcefield ? ServerConfig.FORCEFIELD_LEVEL.get() : -ServerConfig.FORCEFIELD_INTERVAL.get();
+            playSound(forcefield ? ModSounds.FF_ON.get() : ModSounds.FF_OFF.get(), 1.5f, 1f);
 
-        if (postEvent) {
-            ChickenUtils.postChickenEvent(this, forcefield ? Phase.SHIELD_CYCLE : Phase.VULNERABLE_ASSAULT);
+            if (postEvent) {
+                ChickenUtils.postChickenEvent(this, forcefield ? Phase.SHIELD_CYCLE : Phase.VULNERABLE_ASSAULT);
+            }
         }
     }
 
