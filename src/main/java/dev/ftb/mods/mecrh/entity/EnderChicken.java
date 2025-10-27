@@ -598,7 +598,7 @@ public class EnderChicken extends Monster implements GeoEntity {
         super.readAdditionalSaveData(compound);
 
         forcefieldLevel = compound.getInt("ForceFieldLevel");
-        setForceField(forcefieldLevel > 0);
+        setForceField(forcefieldLevel > 0, false);
         nextSpinTime = compound.getInt("NextSpinTime");
         nextChargeTime = compound.getInt("NextChargeTime");
         nextPeckTime = compound.getInt("NextPeckTime");
@@ -824,11 +824,17 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     public void setForceField(boolean forcefield) {
+        setForceField(forcefield, true);
+    }
+
+    public void setForceField(boolean forcefield, boolean postEvent) {
         getEntityData().set(FORCEFIELD, forcefield);
         forcefieldLevel = forcefield ? ServerConfig.FORCEFIELD_LEVEL.get() : -ServerConfig.FORCEFIELD_INTERVAL.get();
         playSound(forcefield ? ModSounds.FF_ON.get() : ModSounds.FF_OFF.get(), 1.5f, 1f);
 
-        ChickenUtils.postChickenEvent(this, forcefield ? Phase.SHIELD_CYCLE : Phase.VULNERABLE_ASSAULT);
+        if (postEvent) {
+            ChickenUtils.postChickenEvent(this, forcefield ? Phase.SHIELD_CYCLE : Phase.VULNERABLE_ASSAULT);
+        }
     }
 
     public boolean isSpinning() {
