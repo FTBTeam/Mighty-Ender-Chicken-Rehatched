@@ -290,7 +290,7 @@ public class EnderChicken extends Monster implements GeoEntity {
     public void aiStep() {
         super.aiStep();
 
-        if (tickCount == SPAWNING_INTRO_TIME + 1 && level().isClientSide) {
+        if (tickCount == SPAWNING_INTRO_TIME + 1 && level().isClientSide && !isNoAi()) {
             MECRHModClient.startMusicLoop(this);
         }
         if (isSpinning()) {
@@ -396,9 +396,9 @@ public class EnderChicken extends Monster implements GeoEntity {
 
     @Override
     protected void customServerAiStep() {
-//        if (!hasRestriction()) {
-//            restrictTo(blockPosition(), ServerConfig.ARENA_RADIUS.get());
-//        }
+        if (!hasRestriction()) {
+            restrictTo(blockPosition(), ServerConfig.ARENA_RADIUS.get());
+        }
 
         if (isInIntroPhase() && tickCount < SPAWNING_INTRO_TIME) {
             int halfIntroTime = SPAWNING_INTRO_TIME / 2;
@@ -421,10 +421,12 @@ public class EnderChicken extends Monster implements GeoEntity {
 
         if (tickCount == 1) {
             if (!inIntroPhase && !hasPassenger(e -> e.getType() == EntityType.ZOMBIE)) {
+                // restoring from NBT, make sure zombie rider exists
                 spawnZombieRider(true);
             }
         } else if (tickCount == SPAWNING_INTRO_TIME - 20) {
-            if (zombieRider == null) {
+            if (inIntroPhase && !hasPassenger(e -> e.getType() == EntityType.ZOMBIE)) {
+                // drop the zombie rider in from above (when newly spawned)
                 spawnZombieRider(false);
             }
         } else if (isInIntroPhase()) {
@@ -520,14 +522,6 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     @Override
-    public void onRemovedFromLevel() {
-        if (zombieRider != null) {
-            zombieRider.discard();
-            zombieRider = null;
-        }
-    }
-
-    @Override
     public @Nullable LivingEntity getControllingPassenger() {
         return null;  // zombie rider never controls the chicken
     }
@@ -554,8 +548,8 @@ public class EnderChicken extends Monster implements GeoEntity {
             });
         }
 
-        if (deathTime >= 10 && zombieRider != null && !level().isClientSide()) {
-            zombieRider.discard();
+        if (deathTime == 10 && !level().isClientSide()) {
+            getPassengers().forEach(Entity::discard);
             zombieRider = null;
         }
 
