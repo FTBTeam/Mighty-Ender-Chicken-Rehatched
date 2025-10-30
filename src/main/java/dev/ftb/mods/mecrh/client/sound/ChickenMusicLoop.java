@@ -33,6 +33,8 @@ public class ChickenMusicLoop extends AbstractTickableSoundInstance {
 
     @Override
     public boolean isStopped() {
-        return chicken.isRemoved();
+        // No-AI check is mainly for benefit of Industrial Foregoing's stasis chamber,
+        //   but it's reasonable to do in any case; AI is only disabled under special circumstances
+        return chicken.isRemoved() || chicken.isNoAi();
     }
 }
