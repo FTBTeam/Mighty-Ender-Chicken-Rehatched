@@ -290,7 +290,7 @@ public class EnderChicken extends Monster implements GeoEntity {
     public void aiStep() {
         super.aiStep();
 
-        if (tickCount == SPAWNING_INTRO_TIME + 1 && level().isClientSide) {
+        if (tickCount == SPAWNING_INTRO_TIME + 1 && level().isClientSide && !isNoAi()) {
             MECRHModClient.startMusicLoop(this);
         }
         if (isSpinning()) {
