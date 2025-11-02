@@ -15,6 +15,7 @@ import dev.ftb.mods.mecrh.util.PreviousLaserDamage;
 import dev.ftb.mods.mecrh.util.Raytracing;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import net.minecraft.ResourceLocationException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -119,6 +120,7 @@ public class EnderChicken extends Monster implements GeoEntity {
     private int projectileImmuneTicks;
     private boolean hasCluckstormed;
     private int despawnTimer;
+    private ResourceLocation startDim;
 
     private final ServerBossEvent bossEvent = new ServerBossEvent(
             Component.translatable("entity.mecrh.ender_chicken"),
@@ -168,6 +170,8 @@ public class EnderChicken extends Monster implements GeoEntity {
         inIntroPhase = true;
 
         lookControl = new ChickenLookControl();
+
+        startDim = level.dimension().location();
 
         setSizeModifier(-0.975);
     }
@@ -461,7 +465,11 @@ public class EnderChicken extends Monster implements GeoEntity {
             --projectileImmuneTicks;
         }
 
-        if (hasRestriction() && position().distanceToSqr(Vec3.atCenterOf(getRestrictCenter())) > ServerConfig.getArenaRadiusSq()) {
+        // don't try to port if we've been moved to another dimension somehow
+        if (hasRestriction()
+                && position().distanceToSqr(Vec3.atCenterOf(getRestrictCenter())) > ServerConfig.getArenaRadiusSq()
+                && level().dimension().location().equals(startDim))
+        {
             Vec3 dest = Vec3.atBottomCenterOf(getRestrictCenter());
             teleportTo(dest.x, dest.y, dest.z);
             setProjectileImmuneTicks(40);
@@ -585,6 +593,7 @@ public class EnderChicken extends Monster implements GeoEntity {
         if (hasRestriction()) compound.put("RestrictPos", NbtUtils.writeBlockPos(getRestrictCenter()));
         if (isEnraged()) compound.putBoolean("Enraged", true);
         if (hasCluckstormed) compound.putBoolean("HasCluckstormed", true);
+        compound.putString("StartDim", startDim.toString());
     }
 
     @Override
@@ -605,6 +614,12 @@ public class EnderChicken extends Monster implements GeoEntity {
         entityData.set(ENRAGED, compound.getBoolean("Enraged"));
         if (!inIntroPhase) {
             setSizeModifier(1.0);
+        }
+        try {
+            startDim = ResourceLocation.parse(compound.getString("StartDim"));
+        } catch (ResourceLocationException ignored) {
+            // leave it unchanged, i.e. dimension entity was created in
+            // shouldn't normally occur (except when upgrading from older version of mod)
         }
     }
 
