@@ -31,5 +31,7 @@ public class ModLangProvider extends LanguageProvider {
         add("mecrh.subtitle.laser_start", "Laser powers up");
         add("mecrh.subtitle.laser_loop", "Laser firing");
         add("mecrh.subtitle.laser_end", "Laser powers down");
+        add("mecrh.subtitle.clear_warn", "Chicken shrieks");
+        add("mecrh.subtitle.chaos_hurt", "Chicken hurt");
     }
 }
