@@ -486,7 +486,9 @@ public class EnderChicken extends Monster implements GeoEntity {
         if (tickCount % 20 == 0 && ServerConfig.DESPAWN_TIME_NO_PLAYERS.get() > 0) {
             if (countPlayersInArena() == 0) {
                 if (++despawnTimer >= ServerConfig.DESPAWN_TIME_NO_PLAYERS.get()) {
+                    getPassengers().forEach(Entity::discard);
                     discard();
+                    MECRHMod.LOGGER.info("Despawned ender chicken id {} @ {}, no players in arena for 30 seconds", getId(), blockPosition());
                 }
             } else {
                 despawnTimer = 0;

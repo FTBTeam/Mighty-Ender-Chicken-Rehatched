@@ -43,7 +43,7 @@ import java.util.Optional;
 public class MECRHMod {
     public static final String MOD_ID = "mecrh";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MECRHMod.class);
+    public static final Logger LOGGER = LoggerFactory.getLogger(MECRHMod.class);
 
     public MECRHMod(IEventBus modEventBus, ModContainer container) {
         modEventBus.addListener(MightyChickenNet::register);
