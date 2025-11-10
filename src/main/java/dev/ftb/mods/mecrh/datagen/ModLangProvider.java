@@ -23,6 +23,7 @@ public class ModLangProvider extends LanguageProvider {
         add("item.mecrh.music_disc_chicken_of_chaos.desc", "FTB Team - Chicken of Chaos");
 
         add("mecrh.message.wrong_forcefield_item", "Invalid weapon for the forcefield!");
+        add("mecrh.message.chicken_despawn_warning", "No players in arena! Chicken despawns in %s seconds!");
 
         add("mecrh.subtitle.forcefield_on", "Forcefield activates");
         add("mecrh.subtitle.forcefield_off", "Forcefield deactivates");
