@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [21.1.4]
 
+### Added
+- Players near the Ender Chicken (but outside the arena radius) are now warned every 5 seconds if despawn is imminent due to lack of players in the arena
+
 ### Fixed
 - Fixed the Ender Chicken leaving an uninteractable zombie rider behind if it despawned due to no players in arena
 
