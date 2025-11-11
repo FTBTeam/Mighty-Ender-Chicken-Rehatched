@@ -15,6 +15,7 @@ import dev.ftb.mods.mecrh.util.PreviousLaserDamage;
 import dev.ftb.mods.mecrh.util.Raytracing;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import net.minecraft.ChatFormatting;
 import net.minecraft.ResourceLocationException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -485,8 +486,17 @@ public class EnderChicken extends Monster implements GeoEntity {
 
         if (tickCount % 20 == 0 && ServerConfig.DESPAWN_TIME_NO_PLAYERS.get() > 0) {
             if (countPlayersInArena() == 0) {
+                if (despawnTimer % 5 == 0) {
+                    AABB aabb = new AABB(blockPosition()).inflate(ServerConfig.ARENA_RADIUS.get() * 2);
+                    int timer = ServerConfig.DESPAWN_TIME_NO_PLAYERS.get() - despawnTimer;
+                    Component msg = Component.translatable("mecrh.message.chicken_despawn_warning", timer).withStyle(ChatFormatting.GOLD);
+                    level().getNearbyPlayers(TargetingConditions.forNonCombat(), this, aabb)
+                            .forEach(player -> player.displayClientMessage(msg, false));
+                }
                 if (++despawnTimer >= ServerConfig.DESPAWN_TIME_NO_PLAYERS.get()) {
+                    getPassengers().forEach(Entity::discard);
                     discard();
+                    MECRHMod.LOGGER.info("Despawned ender chicken id {} @ {}, no players in arena for 30 seconds", getId(), blockPosition());
                 }
             } else {
                 despawnTimer = 0;
@@ -995,7 +1005,8 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     private int countPlayersInArena() {
-        AABB aabb = new AABB(blockPosition()).inflate(ServerConfig.ARENA_RADIUS.get());
+        // a bit of a fudge factor to make despawn radius a little larger than the chicken's limit
+        AABB aabb = new AABB(blockPosition()).inflate(ServerConfig.ARENA_RADIUS.get() + 2);
         return (int) level().getNearbyPlayers(TargetingConditions.forNonCombat(), this, aabb).stream()
                 .filter(this::isInArena)
                 .count();
