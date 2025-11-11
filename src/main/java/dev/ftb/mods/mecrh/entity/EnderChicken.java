@@ -1006,7 +1006,7 @@ public class EnderChicken extends Monster implements GeoEntity {
 
     private int countPlayersInArena() {
         // a bit of a fudge factor to make despawn radius a little larger than the chicken's limit
-        AABB aabb = new AABB(blockPosition()).inflate(ServerConfig.ARENA_RADIUS.get() + 8);
+        AABB aabb = new AABB(blockPosition()).inflate(ServerConfig.ARENA_RADIUS.get() + 2);
         return (int) level().getNearbyPlayers(TargetingConditions.forNonCombat(), this, aabb).stream()
                 .filter(this::isInArena)
                 .count();
