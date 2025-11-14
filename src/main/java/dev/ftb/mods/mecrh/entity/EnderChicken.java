@@ -59,7 +59,6 @@ import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.windcharge.WindCharge;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.CampfireBlock;
@@ -91,12 +90,11 @@ public class EnderChicken extends Monster implements GeoEntity {
     public static final EntityDataAccessor<Boolean> ENRAGED = SynchedEntityData.defineId(EnderChicken.class, EntityDataSerializers.BOOLEAN);
 
     public static final RawAnimation LASER_ANIMATION = RawAnimation.begin().thenPlay("attack.laser");
-    //    public static final RawAnimation SPIN_ANIMATION = RawAnimation.begin().thenPlay("misc.spin");
     public static final RawAnimation ENRAGED_ANIMATION = RawAnimation.begin().thenPlay("misc.enraged");
     public static final RawAnimation PECK_ANIMATION = RawAnimation.begin().thenPlay("attack.peck");
 
     public static final Predicate<? super Entity> PREDICATE_TARGETS
-            = EntitySelector.NO_CREATIVE_OR_SPECTATOR.and(EntitySelector.LIVING_ENTITY_STILL_ALIVE).and(e -> !e.isPassenger());//.and(e -> e.canBeCollidedWith() && e.tickCount > 60);
+            = EntitySelector.NO_CREATIVE_OR_SPECTATOR.and(EntitySelector.LIVING_ENTITY_STILL_ALIVE).and(e -> !e.isPassenger());
 
     public static final int SPAWNING_INTRO_TIME = 80; // ticks
 
@@ -660,25 +658,6 @@ public class EnderChicken extends Monster implements GeoEntity {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        if (shouldIgnoreDamage(source)) {
-            return false;
-        } else if (source.is(DamageTypes.IN_WALL)) {
-            clearAreaNeeded = true;
-            return false;
-        } else {
-            if (!source.is(Tags.DamageTypes.IS_TECHNICAL)) {
-                amount = Math.min(amount, ServerConfig.MAX_INCOMING_DAMAGE.get() * (isEnraged() ? 0.3F : 1F));
-            }
-            return super.hurt(source, amount);
-        }
-    }
-
-    @Override
-    public float maxUpStep() {
-        return 2F;
-    }
-
-    public boolean attackFromPart(DamageSource source, EnderChickenPart part, float amount) {
         // Note: entities which can't break the shield can never hurt the chicken
         // - includes living entities not holding a chicken stick, and all non-entity damage sources
         if (isForceField()) {
@@ -700,6 +679,28 @@ public class EnderChicken extends Monster implements GeoEntity {
             }
             return false;
         }
+
+        if (shouldIgnoreDamage(source)) {
+            return false;
+        } else if (source.is(DamageTypes.IN_WALL)) {
+            clearAreaNeeded = true;
+            return false;
+        } else {
+            if (!source.is(Tags.DamageTypes.IS_TECHNICAL)) {
+                amount = Math.min(amount, ServerConfig.MAX_INCOMING_DAMAGE.get() * (isEnraged() ? 0.3F : 1F));
+            }
+            return super.hurt(source, amount);
+        }
+    }
+
+    @Override
+    public float maxUpStep() {
+        return 2F;
+    }
+
+    public boolean attackFromPart(DamageSource source, EnderChickenPart part, float amount) {
+        // TODO: could use this to apply extra damage for head shots?
+        // this method is a bit redundant atm, but keeping it around for now
         return hurt(source, amount);
     }
 
@@ -713,12 +714,8 @@ public class EnderChicken extends Monster implements GeoEntity {
         return tickCount < SPAWNING_INTRO_TIME;
     }
 
-    private boolean isForceFieldBreakingItem(ItemStack stack) {
-        return stack.is(MECRHTags.Items.CHICKEN_STICKS);
-    }
-
     public boolean shouldIgnoreDamage(DamageSource source) {
-        return source.is(net.minecraft.world.damagesource.DamageTypes.DRAGON_BREATH)
+        return source.is(DamageTypes.DRAGON_BREATH)
                 || source.getEntity() == this
                 || source.getEntity() instanceof EnderChicken
                 || isProjectileImmune() && (source.getDirectEntity() instanceof AbstractArrow || source.getDirectEntity() instanceof WindCharge)
