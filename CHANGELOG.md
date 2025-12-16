@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Added missing translation message for players killed by the chicken's laser
+- Chicken can now only be hurt by players (and not fake players or any other entity) by default. New config settings:
+  - `only_players_can_hurt_chicken` default true
+  - `fake_players_can_hurt_chicken` default false
 
 ## [21.1.5]
 
