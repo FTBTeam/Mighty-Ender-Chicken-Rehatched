@@ -66,6 +66,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.*;
 import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.entity.PartEntity;
 import net.neoforged.neoforge.event.EventHooks;
 import org.jetbrains.annotations.Nullable;
@@ -715,11 +716,13 @@ public class EnderChicken extends Monster implements GeoEntity {
     }
 
     public boolean shouldIgnoreDamage(DamageSource source) {
-        return source.is(DamageTypes.DRAGON_BREATH)
-                || source.getEntity() == this
-                || source.getEntity() instanceof EnderChicken
+        return ServerConfig.ONLY_PLAYERS_CAN_HURT_CHICKEN.get() && !isPlayer(source.getEntity())
                 || isProjectileImmune() && (source.getDirectEntity() instanceof AbstractArrow || source.getDirectEntity() instanceof WindCharge)
                 || inIntroPhase();
+    }
+
+    private boolean isPlayer(Entity e) {
+        return e instanceof Player && (ServerConfig.FAKE_PLAYERS_CAN_HURT_CHICKEN.get() || !(e instanceof FakePlayer));
     }
 
     public boolean isProjectileImmune() {
@@ -822,9 +825,7 @@ public class EnderChicken extends Monster implements GeoEntity {
             firingProgress = 0;
         }
         getEntityData().set(FIRING, firing);
-        if (!firing) {
-            nextLaserTime = tickCount + ServerConfig.getLaserInterval(getRandom());
-        }
+        if (!firing) nextLaserTime = tickCount + ServerConfig.getLaserInterval(getRandom());
     }
 
     public boolean isFlapping() {
@@ -849,9 +850,8 @@ public class EnderChicken extends Monster implements GeoEntity {
             forcefieldLevel = forcefield ? ServerConfig.FORCEFIELD_LEVEL.get() : -ServerConfig.FORCEFIELD_INTERVAL.get();
             playSound(forcefield ? ModSounds.FF_ON.get() : ModSounds.FF_OFF.get(), 1.5f, 1f);
 
-            if (postEvent) {
+            if (postEvent)
                 ChickenUtils.postChickenEvent(this, forcefield ? Phase.SHIELD_CYCLE : Phase.VULNERABLE_ASSAULT);
-            }
         }
     }
 
@@ -862,9 +862,7 @@ public class EnderChicken extends Monster implements GeoEntity {
     public void setSpinning(boolean spinning) {
         getEntityData().set(SPINNING, spinning);
         setYBodyRot(getYHeadRot());
-        if (!spinning) {
-            nextSpinTime = tickCount + ServerConfig.getSpinInterval(getRandom());
-        }
+        if (!spinning) nextSpinTime = tickCount + ServerConfig.getSpinInterval(getRandom());
     }
 
     public int getFiringProgress() {
@@ -889,21 +887,16 @@ public class EnderChicken extends Monster implements GeoEntity {
         if (!level().isClientSide) {
             Explosion.BlockInteraction blockInteraction = damageTerrain ? Explosion.BlockInteraction.DESTROY : Explosion.BlockInteraction.KEEP;
             Explosion explosion = new Explosion(level(), this, x, y, z, strength, fire, blockInteraction);
-            if (EventHooks.onExplosionStart(level(), explosion)) {
-                return;
-            }
+            if (EventHooks.onExplosionStart(level(), explosion)) return;
 
             explosion.explode();
             explosion.finalizeExplosion(false);
-            if (!damageTerrain) {
-                explosion.clearToBlow();
-            }
+            if (!damageTerrain) explosion.clearToBlow();
 
             level().players().forEach(player -> {
-                if (player instanceof ServerPlayer sp && sp.distanceToSqr(x, y, z) < 4096.0) {
+                if (player instanceof ServerPlayer sp && sp.distanceToSqr(x, y, z) < 4096.0)
                     sp.connection.send(new ClientboundExplodePacket(x, y, z, strength, explosion.getToBlow(), explosion.getHitPlayers().get(player),
                             blockInteraction, ParticleTypes.EXPLOSION, ParticleTypes.EXPLOSION, SoundEvents.GENERIC_EXPLODE));
-                }
             });
         }
     }
@@ -916,9 +909,7 @@ public class EnderChicken extends Monster implements GeoEntity {
         if (clearAreaNeeded) {
             clearAreaNeeded = false;
             return true;
-        } else {
-            return partInWall(partHead) || partInWall(partWingL) || partInWall(partWingR);
-        }
+        } else return partInWall(partHead) || partInWall(partWingL) || partInWall(partWingR);
     }
 
     private boolean partInWall(EnderChickenPart part) {
@@ -931,9 +922,7 @@ public class EnderChicken extends Monster implements GeoEntity {
             int z = Mth.floor(part.getZ() + (((i >> 2) % 2) - 0.5) * width * 0.8);
             if (mutPos.getX() != x || mutPos.getY() != y || mutPos.getZ() != z) {
                 mutPos.set(x, y, z);
-                if (level().getBlockState(mutPos).isSuffocating(level(), mutPos)) {
-                    return true;
-                }
+                if (level().getBlockState(mutPos).isSuffocating(level(), mutPos)) return true;
             }
         }
 
@@ -983,9 +972,8 @@ public class EnderChicken extends Monster implements GeoEntity {
         var attr = getAttribute(Attributes.SCALE);
         if (attr != null) {
             attr.removeModifier(CHICKEN_SCALE_MOD);
-            if (modifier != 1.0) {
+            if (modifier != 1.0)
                 attr.addTransientModifier(new AttributeModifier(CHICKEN_SCALE_MOD, modifier, Operation.ADD_MULTIPLIED_TOTAL));
-            }
         }
     }
 
@@ -1043,9 +1031,7 @@ public class EnderChicken extends Monster implements GeoEntity {
 
         @Override
         public void tick() {
-            if (!isSpinning()) {
-                super.tick();
-            }
+            if (!isSpinning()) super.tick();
         }
     }
 }

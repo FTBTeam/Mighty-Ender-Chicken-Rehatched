@@ -36,6 +36,10 @@ public interface ServerConfig {
             .comment("If true, any blocks broken by the chicken will drop items as normal");
     IntValue ZOMBIE_RIDER_SPAWN_HEIGHT = GENERAL.addInt("zombie_rider_spawn_height", 10, 0, 50)
             .comment("Height in blocks above chicken's foot position that the zombie rider initially spawns");
+    BooleanValue ONLY_PLAYERS_CAN_HURT_CHICKEN = GENERAL.addBoolean("only_players_can_hurt_chicken", true)
+            .comment("If true, only players can hurt the chicken");
+    BooleanValue FAKE_PLAYERS_CAN_HURT_CHICKEN = GENERAL.addBoolean("fake_players_can_hurt_chicken", false)
+            .comment("If true, fake player entities can hurt the chicken");
 
     SNBTConfig FORCEFIELD = CONFIG.addGroup("forcefield");
     IntValue FORCEFIELD_LEVEL = FORCEFIELD.addInt("forcefield_level", 4, 1, Integer.MAX_VALUE)
